@@ -1,0 +1,6 @@
+(library
+ (name AnfTest)
+ (libraries base stdio LAnf)
+ (preprocess
+  (pps ppx_expect))
+ (inline_tests))

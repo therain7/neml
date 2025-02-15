@@ -1,0 +1,9 @@
+(library
+ (name LCC)
+ (public_name NeML.CC)
+ (libraries base stdio LAst LParse LPrint)
+ (preprocess
+  (pps ppx_expect))
+ (inline_tests)
+ (instrumentation
+  (backend bisect_ppx)))

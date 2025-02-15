@@ -1,0 +1,6 @@
+(library
+ (name LAnf)
+ (public_name NeML.Anf)
+ (libraries base)
+ (instrumentation
+  (backend bisect_ppx)))
