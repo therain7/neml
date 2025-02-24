@@ -16,6 +16,7 @@ module Const = struct
     | String of string
         (** Constant string such as ["constant"] or [{|other constant|}] *)
 end
+[@@deriving eq, show {with_path= false}]
 
 module Ty = struct
   type t =
@@ -29,6 +30,7 @@ module Ty = struct
           - [(T1, ..., Tn) tconstr] when [l=[T1, ..., Tn]]
         *)
 end
+[@@deriving eq, show {with_path= false}]
 
 module Pat = struct
   type t =
@@ -44,6 +46,7 @@ module Pat = struct
         *)
     | Constraint of t * Ty.t  (** [(P : T)] *)
 end
+[@@deriving eq, show {with_path= false}]
 
 module Expr = struct
   type rec_flag = Rec | Nonrec
@@ -77,6 +80,7 @@ module Expr = struct
     | Seq of t List2.t  (** [E1; E2] *)
     | Constraint of t * Ty.t  (** [(E : T)] *)
 end
+[@@deriving eq, show {with_path= false}]
 
 module StrItem = struct
   (** Constructor declaration. E.g. [A of string] *)
@@ -94,5 +98,6 @@ module StrItem = struct
           - [let rec P1 = E1 and ... and Pn = EN ] when [flag] is [Rec]
         *)
 end
+[@@deriving eq, show {with_path= false}]
 
-type structure = StrItem.t list
+type structure = StrItem.t list [@@deriving eq, show {with_path= false}]

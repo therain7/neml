@@ -131,11 +131,9 @@ let%expect_test _ = run {| Some x |} ; [%expect {| Some x |}]
 
 let%expect_test _ = run {| Cons (1, Nil) |} ; [%expect {| Cons (1, Nil) |}]
 
-let%expect_test _ =
-  run {| [a;b;c] |} ; [%expect {| a :: b :: c :: [] |}]
+let%expect_test _ = run {| [a;b;c] |} ; [%expect {| a :: b :: c :: [] |}]
 
-let%expect_test _ =
-  run {| [a;(b;c)] |} ; [%expect {| a :: (b; c) :: [] |}]
+let%expect_test _ = run {| [a;(b;c)] |} ; [%expect {| a :: (b; c) :: [] |}]
 
 let%expect_test _ = run {| [a] |} ; [%expect {| a :: [] |}]
 
@@ -155,7 +153,8 @@ let%expect_test _ = run {| a, (b, c) |} ; [%expect {| a, (b, c) |}]
 
 let%expect_test _ = run {| (a, b), c |} ; [%expect {| (a, b), c |}]
 
-let%expect_test _ = run {| 1 + - + + 3 |} ; [%expect {| (+) 1 ((~-) ((~+) ((~+) 3))) |}]
+let%expect_test _ =
+  run {| 1 + - + + 3 |} ; [%expect {| (+) 1 ((~-) ((~+) ((~+) 3))) |}]
 
 let%expect_test _ = run {| !%< 123; !0 |} ; [%expect {| (!%<) 123; (!) 0 |}]
 

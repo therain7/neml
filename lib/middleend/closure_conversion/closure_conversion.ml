@@ -180,6 +180,22 @@ let run_cc s =
       let str = run_closure_conversion str in
       PPrint.ToChannel.pretty 1. 40 stdout (LPrint.pp_structure str)
 
+let run_cc_pp s =
+  match LParse.parse s with
+  | None ->
+      print_endline "syntax error"
+  | Some str ->
+      let str = run_closure_conversion str in
+      pp_structure Format.std_formatter str
+
+let%expect_test _ =
+  run_cc_pp {|let (c, d) = (1, 2) in fun a -> a + c + d|} ;
+  [%expect
+    {|
+       let c, d = 1, 2 in
+       (fun (+) a -> (+) ((+) a c) d) (+)
+       |}]
+
 let%expect_test _ =
   run_cc {|let (c, d) = (1, 2) in fun a -> a + c + d|} ;
   [%expect
@@ -190,7 +206,12 @@ let%expect_test _ =
 
 let%expect_test _ =
   run_cc {| let a = fun x -> x + 2|} ;
-  [%expect
-    {|
+  [%expect {|
+       let a = (fun (+) x -> (+) x 2) (+)
+       |}]
+
+let%expect_test _ =
+  run_cc {| let a x = x + 2 |} ;
+  [%expect {|
        let a = (fun (+) x -> (+) x 2) (+)
        |}]
