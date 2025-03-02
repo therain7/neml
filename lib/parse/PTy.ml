@@ -12,7 +12,7 @@ open! Base
 open Angstrom
 
 open LAst
-open Common
+open PCommon
 
 (** 'a, 'b *)
 let pvar = pty_var_id >>| fun id -> Ty.Var id

@@ -8,8 +8,8 @@
 
 open! Base
 
-let pp_id = Common.pp_id
-let pp_const = Common.pp_const
+let pp_id = PpCommon.pp_id
+let pp_const = PpCommon.pp_const
 let pp_ty = PpTy.pp
 let pp_pat = PpPat.pp
 let pp_expr = PpExpr.pp

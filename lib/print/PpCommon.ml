@@ -18,8 +18,6 @@ let infixr op l r = group @@ l ^^ group (break 1) ^^ op ^^ r
 
 let pp_id (Id.I id) =
   match id with
-  | "" ->
-      string ""
   | id when is_op_char (String.get id 0) ->
       PPrint.parens (string id)
   | id ->
@@ -28,7 +26,12 @@ let pp_id (Id.I id) =
 let pp_const =
   let open LAst.Const in
   function
-  | Int x -> OCaml.int x | Char x -> OCaml.char x | String x -> OCaml.string x
+  | Int x ->
+      OCaml.int x
+  | Char x ->
+      OCaml.char x
+  | String x ->
+      OCaml.string x
 
 let plet ppat pexpr rec_flag bindings expr =
   let open LAst.Expr in

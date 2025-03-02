@@ -13,7 +13,7 @@ open Angstrom
 
 open LMisc
 open LAst
-open Common
+open PCommon
 
 let pident = pvalue_id >>| fun id -> Expr.Id id
 let pconst = pconst >>| fun const -> Expr.Const const
