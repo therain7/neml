@@ -2,5 +2,7 @@
  (name LMisc)
  (public_name NeML.Misc)
  (libraries base)
+ (preprocess
+  (pps ppx_deriving.show))
  (instrumentation
   (backend bisect_ppx)))
