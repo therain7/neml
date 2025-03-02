@@ -11,6 +11,7 @@ open Angstrom
 
 open LMisc
 open LAst
+open LTypes
 
 (* ======= Utils ======= *)
 val unit : unit t

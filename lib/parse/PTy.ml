@@ -11,7 +11,7 @@
 open! Base
 open Angstrom
 
-open LAst
+open LTypes
 open PCommon
 
 (** 'a, 'b *)

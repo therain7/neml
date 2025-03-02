@@ -8,6 +8,7 @@
 
 open! Base
 open LMisc
+open LTypes
 
 module Const = struct
   type t =
@@ -15,20 +16,6 @@ module Const = struct
     | Char of char  (** Character such as ['c'] *)
     | String of string
         (** Constant string such as ["constant"] or [{|other constant|}] *)
-  [@@deriving show {with_path= false}]
-end
-
-module Ty = struct
-  type t =
-    | Var of Id.t  (** A type variable such as ['a] *)
-    | Arr of t * t  (** [T1 -> T2] *)
-    | Tuple of t List2.t  (** [T1 * ... * Tn] *)
-    | Con of Id.t * t list
-        (** [Con(tconstr, l)] represents:
-          - [tconstr]               when [l=[]]
-          - [T tconstr]             when [l=[T]]
-          - [(T1, ..., Tn) tconstr] when [l=[T1, ..., Tn]]
-        *)
   [@@deriving show {with_path= false}]
 end
 

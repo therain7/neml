@@ -17,7 +17,7 @@ module Prec = struct
 end
 
 let pp =
-  let open LAst.Ty in
+  let open LTypes.Ty in
   let open PrecedencePrinter (Prec) in
   let rec p = function
     | Var id ->
