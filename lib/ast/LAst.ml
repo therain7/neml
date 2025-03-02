@@ -81,7 +81,8 @@ module StrItem = struct
   type construct_decl = {id: Id.t; arg: Ty.t option}
 
   (** Variant type declaration *)
-  type type_decl = {id: Id.t; params: Id.t list; variants: construct_decl list}
+  type type_decl =
+    {id: Id.t; params: Id.t list; variants: construct_decl List1.t}
 
   type t =
     | Eval of Expr.t  (** [E] *)
