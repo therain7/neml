@@ -8,6 +8,7 @@
 
 open! Base
 open PPrint
+open LMisc
 open Common
 
 let pp_stritem =
@@ -33,7 +34,7 @@ let pp_stritem =
       in
 
       let variants =
-        List.map variants ~f:(fun {id; arg} ->
+        List.map (List1.to_list variants) ~f:(fun {id; arg} ->
             group @@ pp_id id
             ^^ optional
                  (fun ty -> string " of" ^^ nest 2 (break 1 ^^ PpTy.pp ty))

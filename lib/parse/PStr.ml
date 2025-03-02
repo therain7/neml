@@ -12,6 +12,7 @@ open! Base
 open Angstrom
 
 open LAst
+open LMisc
 open Common
 
 (**
@@ -49,6 +50,7 @@ let pty_decl =
     ws *> string "=" *> ws
     *> opt (string "|")
     *> sep_by1 (ws *> char '|') (ws *> pconstruct_decl_)
+    >>| List1.of_list_exn
   in
   return (StrItem.Type {id; params; variants})
 
