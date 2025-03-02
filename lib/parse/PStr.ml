@@ -12,6 +12,7 @@ open! Base
 open Angstrom
 
 open LAst
+open LTypes
 open LMisc
 open PCommon
 
@@ -29,8 +30,8 @@ let plet =
       PExpr.p >>| fun expr -> StrItem.Eval (Expr.Let (rec_flag, bindings, expr))
 
 let pty_params_ =
-  let pmultiple = parens @@ sep_by1 (ws *> char ',') (ws *> pty_var_id) in
-  let psingle = pty_var_id >>| List.return in
+  let pmultiple = parens @@ sep_by1 (ws *> char ',') (ws *> pty_var) in
+  let psingle = pty_var >>| List.return in
   psingle <|> pmultiple <|> return []
 
 (** [Foo of string], [Bar of int] *)
@@ -44,7 +45,9 @@ let pconstruct_decl_ =
 
 (** [type foo = Foo of string | Bar of int] *)
 let pty_decl =
-  let* params = string "type" *> ws1 *> pty_params_ in
+  let* params =
+    string "type" *> ws1 *> pty_params_ >>| Set.of_list (module Var)
+  in
   let* id = ws *> pty_con_id in
   let* variants =
     ws *> string "=" *> ws

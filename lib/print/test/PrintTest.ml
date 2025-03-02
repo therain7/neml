@@ -506,10 +506,7 @@ let%expect_test _ =
     |} ;
   [%expect
     {|
-    type (
-          'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a,
-          'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a
-         ) foo =
+    type 'a foo =
     | A of
       string -> string -> string -> string -> string -> string
     | B of int
@@ -518,10 +515,4 @@ let%expect_test _ =
 let%expect_test _ =
   run
     {|type ('a, 'a,'a,'a,'a,'a,'a,'a,'a,'a,'a,'a,'a,'a,'a,'a,'a,'a) foo = A of string |} ;
-  [%expect
-    {|
-    type (
-          'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a,
-          'a, 'a, 'a, 'a, 'a, 'a, 'a
-         ) foo = A of string
-    |}]
+  [%expect {| type 'a foo = A of string |}]
