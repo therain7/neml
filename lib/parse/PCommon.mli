@@ -26,8 +26,8 @@ val opt : 'a t -> 'a option t
 (* ======= Identifiers ======= *)
 val pconstruct_id : Id.t t
 val pvalue_id : Id.t t
-val pty_var_id : Id.t t
 val pty_con_id : Id.t t
+val pty_var : Var.t t
 
 val pinfix_id : ?starts:string -> unit -> Id.t t
 val pprefix_id : Id.t t

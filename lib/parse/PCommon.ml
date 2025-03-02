@@ -11,6 +11,7 @@ open Angstrom
 
 open LMisc
 open LAst
+open LTypes
 
 (* ======= Utils ======= *)
 let unit = return ()
@@ -105,8 +106,11 @@ let pvalue_id =
   let pop_id = pinfix_id () <|> pprefix_id in
   pident `LowerCase <|> parens pop_id
 
-let pty_var_id = char '\'' *> ws *> (pident `LowerCase <|> pident `Capitalized)
 let pty_con_id = pident `LowerCase
+
+let pty_var =
+  char '\'' *> ws *> (pident `LowerCase <|> pident `Capitalized)
+  >>| fun (Id.I var) -> Var.V var
 
 (* ======= Constants ======= *)
 

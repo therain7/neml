@@ -10,3 +10,4 @@ open! Base
 open LTypes
 
 val pp : Ty.t -> PPrint.document
+val pp_var : Var.t -> PPrint.document

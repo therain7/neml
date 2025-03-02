@@ -20,16 +20,15 @@ let pp_stritem =
       plet PpPat.pp PpExpr.pp rec_flag bindings None
   | Type {id; params; variants} ->
       let id = pp_id id in
-      let params =
-        let pparam id = string "'" ^^ pp_id id in
 
-        match params with
+      let params =
+        match Set.to_list params with
         | [] ->
             empty
-        | [id] ->
-            pparam id ^^ space
-        | _ ->
-            let params = List.map params ~f:pparam in
+        | [var] ->
+            PpTy.pp_var var ^^ space
+        | vars ->
+            let params = List.map vars ~f:PpTy.pp_var in
             parens (flow (comma ^^ break 1) params) ^^ space
       in
 

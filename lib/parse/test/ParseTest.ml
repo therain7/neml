@@ -203,15 +203,15 @@ let%expect_test _ =
 
 let%expect_test _ =
   run {| type foo = A of 'a -> 'b -> 'c |} ;
-  [%expect {| type foo = A of a -> b -> c |}]
+  [%expect {| type foo = A of 'a -> 'b -> 'c |}]
 
 let%expect_test _ =
   run {| type foo = A of 'a * 'b * 'c |} ;
-  [%expect {| type foo = A of a * b * c |}]
+  [%expect {| type foo = A of 'a * 'b * 'c |}]
 
 let%expect_test _ =
   run {| type foo = A of 'some_type_var |} ;
-  [%expect {| type foo = A of some_type_var |}]
+  [%expect {| type foo = A of 'some_type_var |}]
 
 let%expect_test _ =
   run
@@ -222,8 +222,10 @@ let%expect_test _ =
     type foo =
     | A of
       (
-       a -> int
-       * (((string, unit, b -> c) foo) bar) option
+       'a -> int
+       * (
+          ((string, unit, 'b -> 'c) foo) bar
+         ) option
       ) -> e
     |}]
 
@@ -255,7 +257,11 @@ let%expect_test _ = run {| let reca = 1 |} ; [%expect {| let reca = 1 |}]
 
 let%expect_test _ =
   run {| type 'a list = Nil | Cons of 'a * 'a list |} ;
-  [%expect {| type 'a list = Nil | Cons of a * a list |}]
+  [%expect {|
+    type 'a list =
+    | Nil
+    | Cons of 'a * 'a list
+    |}]
 
 let%expect_test _ = run {| 1a |} ; [%expect {| syntax error |}]
 

@@ -15,7 +15,7 @@ open LTypes
 open PCommon
 
 (** 'a, 'b *)
-let pvar = pty_var_id >>| fun id -> Ty.Var id
+let pvar = pty_var >>| fun id -> Ty.Var id
 
 (** ('k, 'v) map *)
 let pmulti_args_app pty =
