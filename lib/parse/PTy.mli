@@ -8,6 +8,6 @@
 
 open! Base
 open Angstrom
-open LAst
+open LTypes
 
 val p : Ty.t t

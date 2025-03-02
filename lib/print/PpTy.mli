@@ -7,5 +7,6 @@
 [@@@ocaml.text "/*"]
 
 open! Base
+open LTypes
 
-val pp : LAst.Ty.t -> PPrint.document
+val pp : Ty.t -> PPrint.document

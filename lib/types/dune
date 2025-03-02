@@ -1,7 +1,7 @@
 (library
- (name LAst)
- (public_name NeML.Ast)
- (libraries base LMisc LTypes)
+ (name LTypes)
+ (public_name NeML.Types)
+ (libraries base LMisc)
  (preprocess
   (pps ppx_deriving.show))
  (instrumentation
