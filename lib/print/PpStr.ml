@@ -7,7 +7,6 @@
 [@@@ocaml.text "/*"]
 
 open! Base
-open LMisc
 open PPrint
 open Common
 
