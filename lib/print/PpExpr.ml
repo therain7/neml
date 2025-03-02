@@ -44,8 +44,8 @@ let pp =
         return Prec.Open doc
     | Function cases ->
         let cases =
-          List.map (List1.to_list cases) ~f:(fun {left; right} ->
-              pcase (PpPat.pp left) (runf p right) )
+          List.map (List1.to_list cases) ~f:(fun {pat; expr} ->
+              pcase (PpPat.pp pat) (runf p expr) )
         in
 
         let doc =
@@ -57,8 +57,8 @@ let pp =
     | Match (expr, cases) ->
         let expr = runf p expr in
         let cases =
-          List.map (List1.to_list cases) ~f:(fun {left; right} ->
-              pcase (PpPat.pp left) (runf p right) )
+          List.map (List1.to_list cases) ~f:(fun {pat; expr} ->
+              pcase (PpPat.pp pat) (runf p expr) )
         in
 
         let doc =

@@ -36,9 +36,9 @@ let pfun pexpr =
 
 let pcases_ pexpr =
   let pcase =
-    let* left = PPat.p in
-    let* right = ws *> string "->" *> pexpr in
-    return Expr.{left; right}
+    let* pat = PPat.p in
+    let* expr = ws *> string "->" *> pexpr in
+    return Expr.{pat; expr}
   in
   let pipe (* optional | *) = ws <* char '|' <|> ws1 in
   pipe *> sep_by1 (ws *> char '|') pcase >>| List1.of_list_exn

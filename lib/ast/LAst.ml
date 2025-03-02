@@ -50,9 +50,6 @@ module Expr = struct
 
   type value_binding = {pat: Pat.t; expr: t}
 
-  (** Pattern matching case *)
-  and case = {left: Pat.t; right: t}
-
   and t =
     | Id of Id.t  (** Identifiers such as [x], [fact] *)
     | Const of Const.t
@@ -63,9 +60,10 @@ module Expr = struct
           - [let rec P1 = E1 and ... and Pn = EN in E] when [flag] is [Rec]
         *)
     | Fun of Pat.t List1.t * t  (** [fun P1 ... Pn -> E] *)
-    | Function of case List1.t  (** [function C1 | ... | Cn] *)
+    | Function of value_binding List1.t  (** [function C1 | ... | Cn] *)
     | Apply of t * t  (** [E1 E2] *)
-    | Match of t * case List1.t  (** [match E with P1 -> E1 | ... | Pn -> En] *)
+    | Match of t * value_binding List1.t
+        (** [match E with P1 -> E1 | ... | Pn -> En] *)
     | Tuple of t List2.t  (** [(E1, ..., En)] *)
     | Construct of Id.t * t option
         (** [Construct(C, exp)] represents:
