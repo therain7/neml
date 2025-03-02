@@ -9,7 +9,7 @@
 open! Base
 open LMisc
 open PPrint
-open Common
+open PpCommon
 
 module Prec = struct
   type t = Arr | Tuple | Con | Highest [@@deriving enum]

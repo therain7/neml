@@ -9,7 +9,7 @@
 open! Base
 open PPrint
 open LMisc
-open Common
+open PpCommon
 
 let pp_stritem =
   let open LAst.StrItem in

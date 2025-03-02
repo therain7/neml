@@ -13,7 +13,7 @@ open Angstrom
 
 open LAst
 open LMisc
-open Common
+open PCommon
 
 (**
   [let P1 = E1 and P2 = E2 and ...]

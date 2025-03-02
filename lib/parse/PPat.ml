@@ -13,7 +13,7 @@ open Angstrom
 
 open LMisc
 open LAst
-open Common
+open PCommon
 
 let pany = char '_' *> return Pat.Any
 let pvar = pvalue_id >>| fun id -> Pat.Var id
@@ -45,7 +45,10 @@ let pparens ppat =
     let* pat = ppat in
     opt (ws *> char ':')
     >>= function
-    | None -> return pat | Some _ -> PTy.p >>| fun ty -> Pat.Constraint (pat, ty)
+    | None ->
+        return pat
+    | Some _ ->
+        PTy.p >>| fun ty -> Pat.Constraint (pat, ty)
   in
   parens p
 
