@@ -42,4 +42,14 @@ module Ty = struct
           - [(T1, ..., Tn) tconstr] when [l=[T1, ..., Tn]]
         *)
   [@@deriving show {with_path= false}]
+
+  let rec vars = function
+    | Var var ->
+        Set.singleton (module Var) var
+    | Arr (ty1, ty2) ->
+        Set.union_list (module Var) [vars ty1; vars ty2]
+    | Tuple tys ->
+        List.map ~f:vars (List2.to_list tys) |> Set.union_list (module Var)
+    | Con (_, tys) ->
+        List.map ~f:vars tys |> Set.union_list (module Var)
 end
