@@ -1,6 +1,6 @@
 (library
  (name LPrint)
- (public_name NeML.Print)
+ (public_name neml.Print)
  (libraries base pprint LAst LMisc)
  (preprocess
   (pps ppx_deriving.enum))

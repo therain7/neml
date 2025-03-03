@@ -1,6 +1,6 @@
 (library
  (name LTypes)
- (public_name NeML.Types)
+ (public_name neml.Types)
  (libraries base LMisc)
  (preprocess
   (pps ppx_deriving.show ppx_deriving.ord ppx_sexp_conv))

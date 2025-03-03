@@ -1,6 +1,6 @@
 (library
  (name LMisc)
- (public_name NeML.Misc)
+ (public_name neml.Misc)
  (libraries base)
  (preprocess
   (pps ppx_deriving.show))
