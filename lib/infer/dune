@@ -1,7 +1,9 @@
+(include_subdirs qualified)
+
 (library
- (name LMisc)
- (public_name neml.Misc)
- (libraries base)
+ (name LInfer)
+ (public_name neml.Infer)
+ (libraries base LMisc LTypes)
  (preprocess
   (pps ppx_deriving.show ppx_deriving.ord ppx_sexp_conv))
  (instrumentation

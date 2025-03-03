@@ -21,6 +21,9 @@ end
 module VarSet = struct
   type t = (Var.t, Var.comparator_witness) Set.t
 
+  let compare = Set.compare_direct
+  let sexp_of_t set = Set.sexp_of_m__t (module Var) set
+
   let pp ppf (set : t) =
     let pp_contents =
       Format.pp_print_list
@@ -41,7 +44,7 @@ module Ty = struct
           - [T tconstr]             when [l=[T]]
           - [(T1, ..., Tn) tconstr] when [l=[T1, ..., Tn]]
         *)
-  [@@deriving show {with_path= false}]
+  [@@deriving show {with_path= false}, ord, sexp_of]
 
   let rec vars = function
     | Var var ->
