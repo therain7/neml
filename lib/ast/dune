@@ -1,6 +1,6 @@
 (library
  (name LAst)
- (public_name NeML.Ast)
+ (public_name neml.Ast)
  (libraries base LMisc LTypes)
  (preprocess
   (pps ppx_deriving.show))

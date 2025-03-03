@@ -1,11 +1,11 @@
 (lang dune 3.15)
 
-(name NeML)
+(name neml)
 
 (generate_opam_files true)
 
 (source
- (github therain7/NeML))
+ (github therain7/neml))
 
 (authors
  "Andrei <therain.i@yahoo.com>"
@@ -18,8 +18,8 @@
 (license MIT)
 
 (package
- (name NeML)
- (synopsis "NeML compiler")
+ (name neml)
+ (synopsis "neml compiler")
  (description "A compiler for some non-existent programming language")
  (depends
   ocaml
