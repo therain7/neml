@@ -49,6 +49,8 @@ module Ty = struct
         *)
   [@@deriving show {with_path= false}, ord, sexp_of]
 
+  let unit = Con (I "unit", [])
+  let bool = Con (I "bool", [])
   let int = Con (I "int", [])
   let char = Con (I "char", [])
   let string = Con (I "string", [])

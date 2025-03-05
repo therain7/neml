@@ -18,7 +18,7 @@ module As = struct
   (**
     Assumptions about identifiers.
     Maps identifiers to a set of type variables
-    that represent identifier's supposed type.
+    that represent identifier's supposed type
   *)
   type t = (Id.t, VarSet.t, Id.comparator_witness) Map.t
 
