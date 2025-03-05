@@ -90,6 +90,36 @@ end = struct
         List.fold_right l ~init ~f:(fun acc x -> f x acc)
 end
 
+module As = struct
+  (**
+    Assumptions about identifiers.
+    Maps identifiers to a set of type variables
+    that represent identifier's supposed type
+  *)
+  type t = (Id.t, VarSet.t, Id.comparator_witness) Map.t
+
+  let empty = Map.empty (module Id)
+  let single x = Map.singleton (module Id) x
+  let merge = Map.merge_skewed ~combine:(fun ~key:_ v1 v2 -> Set.union v1 v2)
+end
+
+module Bounds = struct
+  (** Represents identifiers bound in patterns *)
+  type t = (Id.t, Var.t, Id.comparator_witness) Map.t
+
+  let empty = Map.empty (module Id)
+  let single x = Map.singleton (module Id) x
+
+  exception Rebound of Id.t
+  let merge m1 m2 =
+    let open IGMonad in
+    try
+      return
+      @@ Map.merge_skewed m1 m2 ~combine:(fun ~key:id _ _ ->
+             raise (Rebound id) )
+    with Rebound id -> fail (PatVarBoundSeveralTimes id)
+end
+
 let typeof_const : Const.t -> Ty.t = function
   | Int _ ->
       Ty.int
