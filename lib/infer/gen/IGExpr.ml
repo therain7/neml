@@ -12,7 +12,6 @@ open LMisc
 open LAst
 open LTypes
 
-open ICommon
 open IGCommon
 open IGMonad
 
@@ -96,14 +95,13 @@ let rec gen : Expr.t -> (As.t * Ty.t) IGMonad.t = function
       return (as_expr, ty_expr)
   | Let (Nonrec, bindings, expr) ->
       let* as_bindings, bounds =
-        fold ~dir:`Left (List1.to_list bindings)
-          ~init:(As.empty, IGPat.Bounds.empty)
+        fold ~dir:`Left (List1.to_list bindings) ~init:(As.empty, Bounds.empty)
           ~f:(fun (as_acc, bounds_acc) {pat; expr} ->
             let* as_pat, bounds_pat, ty_pat = IGPat.gen pat in
             let* as_expr, ty_expr = gen expr in
 
             let* () = cs [ty_pat == ty_expr] in
-            let* bounds = IGPat.Bounds.merge bounds_acc bounds_pat in
+            let* bounds = Bounds.merge bounds_acc bounds_pat in
             return (as_acc ++ as_pat ++ as_expr, bounds) )
       in
       let* as_expr, ty_expr = gen expr in

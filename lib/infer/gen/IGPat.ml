@@ -12,25 +12,8 @@ open LMisc
 open LAst
 open LTypes
 
-open ICommon
 open IGCommon
 open IGMonad
-
-module Bounds = struct
-  (** Represents identifiers bound in patterns *)
-  type t = (Id.t, Var.t, Id.comparator_witness) Map.t
-
-  let empty = Map.empty (module Id)
-  let single x = Map.singleton (module Id) x
-
-  exception Rebound of Id.t
-  let merge m1 m2 =
-    try
-      return
-      @@ Map.merge_skewed m1 m2 ~combine:(fun ~key:id _ _ ->
-             raise (Rebound id) )
-    with Rebound id -> fail (PatVarBoundSeveralTimes id)
-end
 
 let rec gen : Pat.t -> (As.t * Bounds.t * Ty.t) IGMonad.t = function
   | Var id ->
