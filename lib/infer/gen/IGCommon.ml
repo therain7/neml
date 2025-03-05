@@ -32,7 +32,12 @@ module IGMonad : sig
   val extend_vars : VarSet.t -> 'a t -> 'a t
   (** Run computation with extended bound vars *)
 
-  val fold_right : 'a list -> init:'acc -> f:('a -> 'acc -> 'acc t) -> 'acc t
+  val fold :
+       'a list
+    -> dir:[`Left | `Right]
+    -> init:'acc
+    -> f:('acc -> 'a -> 'acc t)
+    -> 'acc t
 end = struct
   type state = {counter: int; conset: ConSet.t; bound_vars: VarSet.t}
 
@@ -72,10 +77,17 @@ end = struct
     let* () = put {new_st with bound_vars= st.bound_vars} in
     return x
 
-  let fold_right l ~init ~f =
-    List.fold_right l ~init:(return init) ~f:(fun x acc ->
-        let* acc = acc in
-        f x acc )
+  let fold l ~dir ~init ~f =
+    let init = return init in
+    let f acc x =
+      let* acc = acc in
+      f acc x
+    in
+    match dir with
+    | `Left ->
+        List.fold_left l ~init ~f
+    | `Right ->
+        List.fold_right l ~init ~f:(fun acc x -> f x acc)
 end
 
 let typeof_const : Const.t -> Ty.t = function

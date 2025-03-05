@@ -17,6 +17,7 @@ open IGCommon
 open IGMonad
 
 module Bounds = struct
+  (** Represents identifiers bound in patterns *)
   type t = (Id.t, Var.t, Id.comparator_witness) Map.t
 
   let empty = Map.empty (module Id)
@@ -41,7 +42,7 @@ let rec gen : Pat.t -> (As.t * Bounds.t * Ty.t) IGMonad.t = function
   | Const const ->
       return (As.empty, Bounds.empty, typeof_const const)
   | Tuple pats ->
-      let* asm, bounds, tys = gen_many (List2.to_list pats) in
+      let* asm, bounds, tys = gen_many ~dir:`Right (List2.to_list pats) in
       return (asm, bounds, Ty.Tuple (List2.of_list_exn tys))
   | Constraint (pat, ty) ->
       let* asm, bounds, ty_pat = gen pat in
@@ -68,9 +69,13 @@ let rec gen : Pat.t -> (As.t * Bounds.t * Ty.t) IGMonad.t = function
   | Or _ ->
       assert false
 
-and gen_many : Pat.t list -> (As.t * Bounds.t * Ty.t list) IGMonad.t =
-  fold_right ~init:(As.empty, Bounds.empty, [])
-    ~f:(fun pat (as_acc, bounds_acc, tys_acc) ->
+and gen_many :
+       dir:[`Left | `Right]
+    -> Pat.t list
+    -> (As.t * Bounds.t * Ty.t list) IGMonad.t =
+ fun ~dir l ->
+  fold ~dir l ~init:(As.empty, Bounds.empty, [])
+    ~f:(fun (as_acc, bounds_acc, tys_acc) pat ->
       let* as_pat, bounds_pat, ty_pat = gen pat in
       let* bounds = Bounds.merge bounds_acc bounds_pat in
       return (as_acc ++ as_pat, bounds, ty_pat :: tys_acc) )
