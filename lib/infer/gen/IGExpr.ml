@@ -89,6 +89,37 @@ let rec gen : Expr.t -> (As.t * Ty.t) IGMonad.t = function
       in
 
       return (as_con ++ as_arg, ty_res)
+  | Constraint (expr, ty) ->
+      (* XXX: collisions *)
+      let* as_expr, ty_expr = gen expr in
+      let* () = cs [ty_expr == ty] in
+      return (as_expr, ty_expr)
+  | Let (Nonrec, bindings, expr) ->
+      let* as_bindings, bounds =
+        fold ~dir:`Left (List1.to_list bindings)
+          ~init:(As.empty, IGPat.Bounds.empty)
+          ~f:(fun (as_acc, bounds_acc) {pat; expr} ->
+            let* as_pat, bounds_pat, ty_pat = IGPat.gen pat in
+            let* as_expr, ty_expr = gen expr in
+
+            let* () = cs [ty_pat == ty_expr] in
+            let* bounds = IGPat.Bounds.merge bounds_acc bounds_pat in
+            return (as_acc ++ as_pat ++ as_expr, bounds) )
+      in
+      let* as_expr, ty_expr = gen expr in
+
+      let* bound_vars = bound_vars in
+      let* () =
+        Map.fold bounds ~init:(return ()) ~f:(fun ~key:id ~data:var_pat acc ->
+            let* () = acc in
+            Map.find as_expr id
+            |> Option.value ~default:VarSet.empty
+            |> Set.fold ~init:(return ()) ~f:(fun acc var_expr ->
+                   let* () = acc in
+                   cs [ImplInst (Var var_expr, bound_vars, Var var_pat)] ) )
+      in
+
+      return (as_bindings ++ (as_expr -- Map.keys bounds), ty_expr)
   | _ ->
       assert false
 
