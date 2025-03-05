@@ -11,16 +11,20 @@ open LMisc
 open LTypes
 
 module IError = struct
-  type t = InferError
+  type t = PatVarBoundSeveralTimes of Id.t
 end
 
-module Assumptions = struct
+module As = struct
   (**
     Assumptions about identifiers.
     Maps identifiers to a set of type variables
     that represent identifier's supposed type.
   *)
   type t = (Id.t, VarSet.t, Id.comparator_witness) Map.t
+
+  let empty = Map.empty (module Id)
+  let single x = Map.singleton (module Id) x
+  let merge = Map.merge_skewed ~combine:(fun ~key:_ v1 v2 -> Set.union v1 v2)
 end
 
 module Con = struct

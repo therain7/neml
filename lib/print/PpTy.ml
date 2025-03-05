@@ -20,10 +20,9 @@ end
 let pp_var (Var.V var) = string "'" ^^ string var
 
 let pp =
-  let open LTypes.Ty in
   let open PrecedencePrinter (Prec) in
   let rec p = function
-    | Var var ->
+    | Ty.Var var ->
         return Prec.Highest (pp_var var)
     | Con (id, []) ->
         return Prec.Highest (pp_id id)

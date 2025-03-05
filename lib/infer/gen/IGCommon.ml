@@ -9,7 +9,9 @@
 open! Base
 
 open LMisc
+open LAst
 open LTypes
+
 open ICommon
 
 module IGMonad : sig
@@ -29,6 +31,8 @@ module IGMonad : sig
 
   val extend_vars : VarSet.t -> 'a t -> 'a t
   (** Run computation with extended bound vars *)
+
+  val fold_right : 'a list -> init:'acc -> f:('a -> 'acc -> 'acc t) -> 'acc t
 end = struct
   type state = {counter: int; conset: ConSet.t; bound_vars: VarSet.t}
 
@@ -69,4 +73,21 @@ end = struct
     let* new_st = get in
     let* () = put {new_st with bound_vars= st.bound_vars} in
     return x
+
+  let fold_right l ~init ~f =
+    List.fold_right l ~init:(return init) ~f:(fun x acc ->
+        let* acc = acc in
+        f x acc )
 end
+
+let typeof_const : Const.t -> Ty.t = function
+  | Int _ ->
+      Ty.int
+  | Char _ ->
+      Ty.char
+  | String _ ->
+      Ty.string
+
+let ( == ) t1 t2 = Con.TyEq (t1, t2)
+let ( ++ ) = As.merge
+let ( -- ) asm = List.fold ~init:asm ~f:Map.remove

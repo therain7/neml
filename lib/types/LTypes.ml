@@ -24,6 +24,8 @@ module VarSet = struct
   let compare = Set.compare_direct
   let sexp_of_t set = Set.sexp_of_m__t (module Var) set
 
+  let single = Set.singleton (module Var)
+
   let pp ppf (set : t) =
     let pp_contents =
       Format.pp_print_list
@@ -45,6 +47,10 @@ module Ty = struct
           - [(T1, ..., Tn) tconstr] when [l=[T1, ..., Tn]]
         *)
   [@@deriving show {with_path= false}, ord, sexp_of]
+
+  let int = Con (I "int", [])
+  let char = Con (I "char", [])
+  let string = Con (I "string", [])
 
   let rec vars = function
     | Var var ->
