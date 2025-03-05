@@ -24,6 +24,7 @@ module VarSet = struct
   let compare = Set.compare_direct
   let sexp_of_t set = Set.sexp_of_m__t (module Var) set
 
+  let empty = Set.empty (module Var)
   let single = Set.singleton (module Var)
 
   let pp ppf (set : t) =
