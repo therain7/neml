@@ -58,7 +58,7 @@ module Ty = struct
 
   let rec vars = function
     | Var var ->
-        Set.singleton (module Var) var
+        VarSet.single var
     | Arr (ty1, ty2) ->
         Set.union_list (module Var) [vars ty1; vars ty2]
     | Tuple tys ->
