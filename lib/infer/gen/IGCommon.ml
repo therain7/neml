@@ -50,8 +50,7 @@ end = struct
 
   let run m =
     let {conset; _}, x =
-      run m
-        {counter= 0; conset= Set.empty (module Con); bound_vars= VarSet.empty}
+      run m {counter= 0; conset= ConSet.empty; bound_vars= VarSet.empty}
     in
     (conset, x)
 

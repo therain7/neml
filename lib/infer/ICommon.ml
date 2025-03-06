@@ -51,4 +51,7 @@ end
 module ConSet = struct
   (** Set of type constraints *)
   type t = (Con.t, Con.comparator_witness) Set.t
+
+  let empty = Set.empty (module Con)
+  let single = Set.singleton (module Con)
 end
