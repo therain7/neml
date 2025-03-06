@@ -18,6 +18,7 @@ module IError = struct
     | OccursIn of Var.t * Ty.t  (** Type variable occurs in a type *)
     | PatVarBoundSeveralTimes of Id.t
         (** Pattern(s) bound the same variable several times. E.g. `let x, x = ..` *)
+    | NotImplemented of string  (** Too bad something's not done *)
 end
 
 module Sc = struct
