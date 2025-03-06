@@ -12,10 +12,21 @@ open LTypes
 
 module IError = struct
   type t =
-    | OccursIn of Var.t * Ty.t
-    | PatVarBoundSeveralTimes of Id.t
-    | UnificationFail of Ty.t * Ty.t
+    | UnificationFail of Ty.t * Ty.t  (** Failed to unify two types *)
     | UnificationMismatch of Ty.t list * Ty.t list
+        (** Lists of types to unify have different lengths *)
+    | OccursIn of Var.t * Ty.t  (** Type variable occurs in a type *)
+    | PatVarBoundSeveralTimes of Id.t
+        (** Pattern(s) bound the same variable several times. E.g. `let x, x = ..` *)
+end
+
+module Sc = struct
+  (** Type with universally quantified type variables *)
+  type t = Forall of VarSet.t * Ty.t
+  [@@deriving show {with_path= false}, ord, sexp_of]
+
+  let vars : t -> VarSet.t =
+   fun (Forall (quantified, ty)) -> Set.diff (Ty.vars ty) quantified
 end
 
 module Con = struct
@@ -27,6 +38,8 @@ module Con = struct
           (** States that t1 should be an instance of the type scheme
             that is obtained by generalizing type t2 with respect
             to the set of monomorphic type variables M *)
+      | ExplInst of Ty.t * Sc.t
+          (** States that ty has to be a generic instance of the type scheme *)
     [@@deriving show {with_path= false}, ord, sexp_of]
   end
 

@@ -37,6 +37,35 @@ module Sub = struct
       ~combine:(fun ~key:_ _ v2 -> v2)
       (Map.map s2 ~f:(apply s1))
       s1
+
+  let apply_sc : t -> Sc.t -> Sc.t =
+   fun sub (Forall (quantified, ty)) ->
+    (* remove quantified vars from substitution *)
+    let sub = Set.fold quantified ~init:sub ~f:Map.remove in
+    Forall (quantified, apply sub ty)
+
+  let apply_varset : t -> VarSet.t -> VarSet.t =
+   fun sub ->
+    (* construct new varset by adding all vars occuring in types
+       on the right hand side of respective substitutions *)
+    Set.fold ~init:VarSet.empty ~f:(fun acc var ->
+        let vars =
+          Map.find sub var
+          |> Option.value_map ~default:(VarSet.single var) ~f:Ty.vars
+        in
+        Set.union acc vars )
+
+  let apply_conset : t -> ConSet.t -> ConSet.t =
+   fun sub ->
+    let f : Con.t -> Con.t = function
+      | TyEq (ty1, ty2) ->
+          TyEq (apply sub ty1, apply sub ty2)
+      | ImplInst (ty1, bound, ty2) ->
+          ImplInst (apply sub ty1, apply_varset sub bound, apply sub ty2)
+      | ExplInst (ty, sc) ->
+          ExplInst (apply sub ty, apply_sc sub sc)
+    in
+    Set.map (module Con) ~f
 end
 
 module Monad : sig
@@ -91,3 +120,27 @@ and unify_many (tys1 : Ty.t list) (tys2 : Ty.t list) =
       fail (UnificationMismatch (tys1, tys2))
   | Ok x ->
       x
+
+let generalize (bound : VarSet.t) (ty : Ty.t) : Sc.t =
+  Forall (Set.diff (Ty.vars ty) bound, ty)
+
+let instantiate : Sc.t -> Ty.t t =
+ fun (Forall (quantified, ty)) ->
+  let* sub =
+    Set.fold quantified ~init:(return Sub.empty) ~f:(fun acc qvar ->
+        let* acc = acc in
+        let* var = fresh in
+        return (Sub.compose acc (Sub.single qvar (Var var))) )
+  in
+  return (Sub.apply sub ty)
+
+let activevars : ConSet.t -> VarSet.t =
+  let f : Con.t -> VarSet.t = function
+    | TyEq (ty1, ty2) ->
+        Set.union (Ty.vars ty1) (Ty.vars ty2)
+    | ImplInst (ty1, bound, ty2) ->
+        Set.union (Ty.vars ty1) (Set.inter bound (Ty.vars ty2))
+    | ExplInst (ty, sc) ->
+        Set.union (Ty.vars ty) (Sc.vars sc)
+  in
+  Set.fold ~init:VarSet.empty ~f:(fun acc con -> Set.union acc (f con))
