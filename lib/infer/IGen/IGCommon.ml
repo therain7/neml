@@ -97,8 +97,8 @@ module As = struct
   *)
   type t = (Id.t, VarSet.t, Id.comparator_witness) Map.t
 
-  let empty = Map.empty (module Id)
-  let single x = Map.singleton (module Id) x
+  let empty : t = Map.empty (module Id)
+  let single x y : t = Map.singleton (module Id) x y
   let merge = Map.merge_skewed ~combine:(fun ~key:_ v1 v2 -> Set.union v1 v2)
 end
 
@@ -106,8 +106,8 @@ module Bounds = struct
   (** Represents identifiers bound in patterns *)
   type t = (Id.t, Var.t, Id.comparator_witness) Map.t
 
-  let empty = Map.empty (module Id)
-  let single x = Map.singleton (module Id) x
+  let empty : t = Map.empty (module Id)
+  let single x y : t = Map.singleton (module Id) x y
 
   exception Rebound of Id.t
   let merge m1 m2 =
