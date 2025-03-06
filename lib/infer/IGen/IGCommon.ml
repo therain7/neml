@@ -17,7 +17,7 @@ open ICommon
 module IGMonad : sig
   include MONAD
 
-  val run : 'a t -> ConSet.t * ('a, IError.t) result
+  val run : 'a t -> ConSet.t * ('a, IError.t) Result.t
   val fail : IError.t -> 'a t
 
   val fresh : Var.t t
