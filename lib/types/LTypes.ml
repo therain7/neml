@@ -11,7 +11,8 @@ open LMisc
 
 module Var = struct
   module T = struct
-    type t = V of string [@@deriving show {with_path= false}, ord, sexp_of]
+    type t = V of string
+    [@@deriving show {with_path= false}, ord, sexp_of, eq]
   end
 
   include T
@@ -47,7 +48,7 @@ module Ty = struct
           - [T tconstr]             when [l=[T]]
           - [(T1, ..., Tn) tconstr] when [l=[T1, ..., Tn]]
         *)
-  [@@deriving show {with_path= false}, ord, sexp_of]
+  [@@deriving show {with_path= false}, ord, sexp_of, eq]
 
   let unit = Con (I "unit", [])
   let bool = Con (I "bool", [])

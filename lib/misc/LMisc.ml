@@ -11,7 +11,8 @@ open! Base
 (** Identifiers *)
 module Id = struct
   module T = struct
-    type t = I of string [@@deriving show {with_path= false}, ord, sexp_of]
+    type t = I of string
+    [@@deriving show {with_path= false}, ord, sexp_of, eq]
   end
 
   include T
@@ -34,7 +35,7 @@ end
 (** List containing at least 2 elements *)
 module List2 = struct
   type 'a t = 'a * 'a * 'a list
-  [@@deriving show {with_path= false}, ord, sexp_of]
+  [@@deriving show {with_path= false}, ord, sexp_of, eq]
 
   let of_list_exn : 'a list -> 'a t = function
     | fst :: snd :: tl ->
