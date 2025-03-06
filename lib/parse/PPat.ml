@@ -70,4 +70,4 @@ let table =
 
   [[InfixR plist]; [InfixN ptuple]; [InfixL por]]
 
-let p = fix (fun ppat -> poperators ~table ~poprnd:(poprnd ppat))
+let p : Pat.t t = fix (fun ppat -> poperators ~table ~poprnd:(poprnd ppat))

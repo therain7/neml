@@ -7,8 +7,10 @@
 [@@@ocaml.text "/*"]
 
 open! Base
-open LMisc
 open PPrint
+
+open LMisc
+open LAst
 open PpCommon
 
 module Prec = struct
@@ -16,8 +18,8 @@ module Prec = struct
   let parens = parens
 end
 
-let pp =
-  let open LAst.Pat in
+let pp : Pat.t -> document =
+  let open Pat in
   let open PrecedencePrinter (Prec) in
   let rec p = function
     | Any ->

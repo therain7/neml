@@ -48,4 +48,4 @@ let table =
 
   [[InfixN ptuple]; [InfixR parr]]
 
-let p = fix (fun pty -> poperators ~table ~poprnd:(papp pty))
+let p : Ty.t t = fix (fun pty -> poperators ~table ~poprnd:(papp pty))

@@ -8,11 +8,13 @@
 
 open! Base
 open PPrint
+
 open LMisc
+open LAst
 open PpCommon
 
-let pp_stritem =
-  let open LAst.StrItem in
+let pp_stritem : StrItem.t -> document =
+  let open StrItem in
   function
   | Eval expr ->
       PpExpr.pp expr
@@ -48,7 +50,7 @@ let pp_stritem =
            ^^ ifflat empty (string "| ")
            ^^ separate (break 1 ^^ string "| ") variants )
 
-let pp_structure str =
+let pp_structure (str : structure) : document =
   let open PPrint in
   let str = List.map str ~f:(fun item -> pp_stritem item) in
   flow (string ";;" ^^ twice hardline) str
