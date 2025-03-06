@@ -37,7 +37,7 @@ let rec gen : Expr.t -> (As.t * Ty.t) IGMonad.t = function
         extend_vars (Set.of_list (module Var) (Map.data bounds)) (gen expr)
       in
 
-      (* Create constraints for the type of every pattern
+      (* create constraints for the type of every pattern
          and its occurrences in expression *)
       let* () =
         Map.fold bounds ~init:(return ()) ~f:(fun ~key:id ~data:var_pat acc ->

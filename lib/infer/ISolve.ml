@@ -125,9 +125,6 @@ and unify_many (tys1 : Ty.t list) (tys2 : Ty.t list) =
   | Ok x ->
       x
 
-let generalize (bound : VarSet.t) (ty : Ty.t) : Sc.t =
-  Forall (Set.diff (Ty.vars ty) bound, ty)
-
 let instantiate : Sc.t -> Ty.t t =
  fun (Forall (quantified, ty)) ->
   let* sub =

@@ -12,6 +12,8 @@ open LTypes
 
 module IError = struct
   type t =
+    | UnboundVariable of Id.t
+        (** Failed to find a variable in the environment *)
     | UnificationFail of Ty.t * Ty.t  (** Failed to unify two types *)
     | UnificationMismatch of Ty.t list * Ty.t list
         (** Lists of types to unify have different lengths *)
@@ -29,6 +31,9 @@ module Sc = struct
   let vars : t -> VarSet.t =
    fun (Forall (quantified, ty)) -> Set.diff (Ty.vars ty) quantified
 end
+
+let generalize (bound : VarSet.t) (ty : Ty.t) : Sc.t =
+  Forall (Set.diff (Ty.vars ty) bound, ty)
 
 module Con = struct
   module T = struct
@@ -52,6 +57,6 @@ module ConSet = struct
   (** Set of type constraints *)
   type t = (Con.t, Con.comparator_witness) Set.t
 
-  let empty = Set.empty (module Con)
-  let single = Set.singleton (module Con)
+  let empty : t = Set.empty (module Con)
+  let single x : t = Set.singleton (module Con) x
 end
