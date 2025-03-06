@@ -120,7 +120,7 @@ and unify_many (tys1 : Ty.t list) (tys2 : Ty.t list) =
   List.fold2 tys1 tys2 ~init:(return Sub.empty) ~f:(fun acc ty1 ty2 ->
       let* acc = acc in
       let* sub = unify ty1 ty2 in
-      return (Sub.compose sub acc) )
+      return (Sub.compose acc sub) )
   |> function
   | Unequal_lengths ->
       fail (UnificationMismatch (tys1, tys2))
@@ -133,7 +133,7 @@ let instantiate : Sc.t -> Ty.t t =
     Set.fold quantified ~init:(return Sub.empty) ~f:(fun acc qvar ->
         let* acc = acc in
         let* var = fresh in
-        return (Sub.compose (Sub.single qvar (Var var)) acc) )
+        return (Sub.compose acc (Sub.single qvar (Var var))) )
   in
   return (Sub.apply sub ty)
 
