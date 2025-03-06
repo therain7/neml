@@ -11,7 +11,11 @@ open LMisc
 open LTypes
 
 module IError = struct
-  type t = PatVarBoundSeveralTimes of Id.t
+  type t =
+    | OccursIn of Var.t * Ty.t
+    | PatVarBoundSeveralTimes of Id.t
+    | UnificationFail of Ty.t * Ty.t
+    | UnificationMismatch of Ty.t list * Ty.t list
 end
 
 module Con = struct
