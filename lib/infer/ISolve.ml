@@ -73,6 +73,8 @@ module Monad : sig
 
   val fail : IError.t -> 'a t
 
+  val run : 'a t -> ('a, IError.t) result
+
   val fresh : Var.t t
   (** Generate fresh type variable *)
 end = struct
@@ -84,6 +86,8 @@ end = struct
         type t = state
       end)
       (IError)
+
+  let run m = run m {counter= 0} |> snd
 
   let fresh =
     let* {counter} = get in
@@ -114,7 +118,7 @@ and unify_many (tys1 : Ty.t list) (tys2 : Ty.t list) =
   List.fold2 tys1 tys2 ~init:(return Sub.empty) ~f:(fun acc ty1 ty2 ->
       let* acc = acc in
       let* sub = unify ty1 ty2 in
-      return (Sub.compose acc sub) )
+      return (Sub.compose sub acc) )
   |> function
   | Unequal_lengths ->
       fail (UnificationMismatch (tys1, tys2))
@@ -130,7 +134,7 @@ let instantiate : Sc.t -> Ty.t t =
     Set.fold quantified ~init:(return Sub.empty) ~f:(fun acc qvar ->
         let* acc = acc in
         let* var = fresh in
-        return (Sub.compose acc (Sub.single qvar (Var var))) )
+        return (Sub.compose (Sub.single qvar (Var var)) acc) )
   in
   return (Sub.apply sub ty)
 
@@ -144,3 +148,48 @@ let activevars : ConSet.t -> VarSet.t =
         Set.union (Ty.vars ty) (Sc.vars sc)
   in
   Set.fold ~init:VarSet.empty ~f:(fun acc con -> Set.union acc (f con))
+
+let rec solve_cs (cs : ConSet.t) : Sub.t t =
+  (* find next constraint that should be solved *)
+  let next_solvable : (Con.t * ConSet.t) option =
+    Set.find_map cs ~f:(fun (con : Con.t) ->
+        let rest = Set.remove cs con in
+        let ok = Some (con, rest) in
+        let no = None in
+
+        (* enforce order in which constraints must be solved *)
+        match con with
+        | TyEq _ | ExplInst _ ->
+            ok
+        | ImplInst (_, bound, ty2)
+        (* solve ImplInst only after all other constraints on ty2 are solved *)
+          when Set.is_empty
+               @@ Set.inter (activevars rest) (Set.diff (Ty.vars ty2) bound) ->
+            ok
+        | ImplInst _ ->
+            no )
+  in
+  match next_solvable with
+  | Some (con, rest) ->
+      (* found some constraint to solve *)
+      solve_con con rest
+  | None ->
+      (* no constraint left to solve.
+         that can only happen if constraint set is empty.
+         otherwise there's bug in the algo *)
+      assert (Set.is_empty cs) ;
+      return Sub.empty
+
+and solve_con (con : Con.t) (rest : ConSet.t) : Sub.t t =
+  match con with
+  | TyEq (ty1, ty2) ->
+      let* sub1 = unify ty1 ty2 in
+      let* sub2 = solve_cs (Sub.apply_conset sub1 rest) in
+      return (Sub.compose sub2 sub1)
+  | ImplInst (ty1, bound, ty2) ->
+      solve_cs (Set.add rest (ExplInst (ty1, generalize bound ty2)))
+  | ExplInst (ty, sc) ->
+      let* inst = instantiate sc in
+      solve_cs (Set.add rest (TyEq (ty, inst)))
+
+let solve (cs : ConSet.t) : (Sub.t, IError.t) result = run (solve_cs cs)
