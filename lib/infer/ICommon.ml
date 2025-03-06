@@ -21,6 +21,7 @@ module IError = struct
     | PatVarBoundSeveralTimes of Id.t
         (** Pattern(s) bound the same variable several times. E.g. `let x, x = ..` *)
     | NotImplemented of string  (** Too bad something's not done *)
+  [@@deriving show {with_path= false}]
 end
 
 module Sc = struct
