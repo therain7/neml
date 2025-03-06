@@ -118,8 +118,12 @@ let rec gen : Expr.t -> (As.t * Ty.t) IGMonad.t = function
       in
 
       return (as_bindings ++ (as_expr -- Map.keys bounds), ty_expr)
-  | _ ->
-      assert false
+  | Let (Rec, _, _) ->
+      fail (NotImplemented "recursive value bindings")
+  | Function _ ->
+      fail (NotImplemented "`function` pattern matching")
+  | Match _ ->
+      fail (NotImplemented "pattern matching")
 
 and gen_many :
     dir:[`Left | `Right] -> Expr.t list -> (As.t * Ty.t list) IGMonad.t =

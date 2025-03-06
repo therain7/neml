@@ -50,7 +50,7 @@ let rec gen : Pat.t -> (As.t * Bounds.t * Ty.t) IGMonad.t = function
 
       return (as_con ++ as_arg, bounds_arg, ty_res)
   | Or _ ->
-      assert false
+      fail (NotImplemented "or patterns")
 
 and gen_many :
        dir:[`Left | `Right]
