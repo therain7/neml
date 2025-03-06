@@ -17,8 +17,7 @@ let run' s =
   let print id ty =
     let open PPrint in
     let doc =
-      group @@ string "val " ^^ LPrint.pp_id id ^^ string ": "
-      ^^ LPrint.pp_ty ty ^^ hardline
+      group @@ LPrint.pp_id id ^^ string ": " ^^ LPrint.pp_ty ty ^^ hardline
     in
     ToChannel.pretty 1. 40 stdout doc
   in
@@ -48,3 +47,40 @@ let run s =
       LInfer.IError.pp Format.std_formatter err
   | Ok _ ->
       ()
+
+let%expect_test _ =
+  run {|
+    let id1 = fun x -> x in
+    id1 42; id1 "hello"
+  |} ;
+  [%expect {| _: string |}]
+
+let%expect_test _ =
+  run {|
+    let f id = id 42; id "hello" in
+    f (fun x -> x)
+  |} ;
+  [%expect
+    {| (UnificationFail ((Con ((I "int"), [])), (Con ((I "string"), [])))) |}]
+
+let%expect_test _ =
+  run {| fun x -> let y = x in y |} ;
+  [%expect {| _: 'gen2 -> 'gen2 |}]
+
+let%expect_test _ =
+  run {|
+    fun x ->
+      let y = fun z -> x z in y |} ;
+  [%expect {| _: ('gen4 -> 'gen5) -> 'gen4 -> 'gen5 |}]
+
+let%expect_test _ =
+  run {| fun x f -> f x |} ;
+  [%expect {| _: 'gen3 -> ('gen3 -> 'gen4) -> 'gen4 |}]
+
+let%expect_test _ =
+  run {| fun f -> fun x -> f x |} ;
+  [%expect {| _: ('gen3 -> 'gen4) -> 'gen3 -> 'gen4 |}]
+
+let%expect_test _ =
+  run {| fun f -> fun x -> g x |} ;
+  [%expect {| (UnboundVariable (I "g")) |}]

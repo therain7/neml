@@ -73,9 +73,8 @@ end
 module Monad : sig
   include MONAD
 
-  val fail : IError.t -> 'a t
-
   val run : 'a t -> ('a, IError.t) Result.t
+  val fail : IError.t -> 'a t
 
   val fresh : Var.t t
   (** Generate fresh type variable *)
