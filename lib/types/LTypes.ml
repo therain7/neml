@@ -9,6 +9,8 @@
 open! Base
 open LMisc
 
+module Format = Stdlib.Format
+
 module Var = struct
   module T = struct
     type t = V of string

@@ -76,13 +76,13 @@ end
 module MakeSEMonad (StateT : T) (ErrorT : T) : sig
   include MONAD
 
-  val run : 'a t -> StateT.t -> StateT.t * ('a, ErrorT.t) result
+  val run : 'a t -> StateT.t -> StateT.t * ('a, ErrorT.t) Result.t
   val fail : ErrorT.t -> 'a t
 
   val put : StateT.t -> unit t
   val get : StateT.t t
 end = struct
-  type 'a t = StateT.t -> StateT.t * ('a, ErrorT.t) result
+  type 'a t = StateT.t -> StateT.t * ('a, ErrorT.t) Result.t
 
   let run m st = m st
   let return x st = (st, Ok x)

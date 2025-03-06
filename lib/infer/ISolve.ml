@@ -73,7 +73,7 @@ module Monad : sig
 
   val fail : IError.t -> 'a t
 
-  val run : 'a t -> ('a, IError.t) result
+  val run : 'a t -> ('a, IError.t) Result.t
 
   val fresh : Var.t t
   (** Generate fresh type variable *)
@@ -192,4 +192,4 @@ and solve_con (con : Con.t) (rest : ConSet.t) : Sub.t t =
       let* inst = instantiate sc in
       solve_cs (Set.add rest (TyEq (ty, inst)))
 
-let solve (cs : ConSet.t) : (Sub.t, IError.t) result = run (solve_cs cs)
+let solve (cs : ConSet.t) : (Sub.t, IError.t) Result.t = run (solve_cs cs)
