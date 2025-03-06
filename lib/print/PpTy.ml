@@ -7,9 +7,10 @@
 [@@@ocaml.text "/*"]
 
 open! Base
+open PPrint
+
 open LMisc
 open LTypes
-open PPrint
 open PpCommon
 
 module Prec = struct
@@ -17,9 +18,9 @@ module Prec = struct
   let parens = parens
 end
 
-let pp_var (Var.V var) = string "'" ^^ string var
+let pp_var (Var.V var) : document = string "'" ^^ string var
 
-let pp =
+let pp : Ty.t -> document =
   let open PrecedencePrinter (Prec) in
   let rec p = function
     | Ty.Var var ->

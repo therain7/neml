@@ -193,4 +193,4 @@ let table =
   ; [InfixN ptuple]
   ; [InfixN pseq] ]
 
-let p = fix (fun pexpr -> poperators ~table ~poprnd:(poprnd pexpr))
+let p : Expr.t t = fix (fun pexpr -> poperators ~table ~poprnd:(poprnd pexpr))

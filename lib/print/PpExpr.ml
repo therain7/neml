@@ -7,8 +7,10 @@
 [@@@ocaml.text "/*"]
 
 open! Base
-open LMisc
 open PPrint
+
+open LMisc
+open LAst
 open PpCommon
 
 module Prec = struct
@@ -19,8 +21,8 @@ end
 let pcase left right =
   group @@ left ^^ string " ->" ^^ group (nest 2 (break 1 ^^ right))
 
-let pp =
-  let open LAst.Expr in
+let pp : Expr.t -> document =
+  let open Expr in
   let open PrecedencePrinter (Prec) in
   let rec p = function
     | Id id ->
