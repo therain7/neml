@@ -116,7 +116,7 @@ let rec unify (ty1 : Ty.t) (ty2 : Ty.t) : Sub.t t =
 and unify_many (tys1 : Ty.t list) (tys2 : Ty.t list) =
   List.fold2 tys1 tys2 ~init:(return Sub.empty) ~f:(fun acc ty1 ty2 ->
       let* acc = acc in
-      let* sub = unify ty1 ty2 in
+      let* sub = unify (Sub.apply acc ty1) (Sub.apply acc ty2) in
       return (Sub.compose acc sub) )
   |> function
   | Unequal_lengths ->
