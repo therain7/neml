@@ -23,6 +23,7 @@ type output =
   ; constraints: ConSet.t
   ; ty: Ty.t option }
 
+(** Tries to generate type constraints for structure item *)
 let gen (deftys : DefTys.t) (item : StrItem.t) : (output, IError.t) Result.t =
   let open Result in
   let constraints, res = IGCommon.IGMonad.run (IGStr.gen deftys item) in

@@ -14,6 +14,7 @@ open LTypes
 open ICommon
 
 module Sub = struct
+  (** Substitution maps type variables to types *)
   type t = (Var.t, Ty.t, Var.comparator_witness) Map.t
 
   let empty : t = Map.empty (module Var)
@@ -97,6 +98,9 @@ end
 open Monad
 
 let occurs_check var ty = Set.mem (Ty.vars ty) var
+
+(** Tries to construct substitution that's
+    when applied to both types would yield unified type *)
 let rec unify (ty1 : Ty.t) (ty2 : Ty.t) : Sub.t t =
   match (ty1, ty2) with
   | _, _ when Ty.equal ty1 ty2 ->
