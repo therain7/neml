@@ -17,6 +17,16 @@ module IError = struct
     | UnificationFail of Ty.t * Ty.t  (** Failed to unify two types *)
     | UnificationMismatch of Ty.t list * Ty.t list
         (** Lists of types to unify have different lengths *)
+    | UnboundType of Id.t
+        (** Type is unbound in type declaration.
+            E.g. `type bar = Bar of foo` (foo is unbound) *)
+    | UnboundTypeVariable of Var.t
+        (** Type variable is unbound in type declaration.
+            E.g. `type bar = Bar of 'a` ('a is unbound) *)
+    | TypeArityMismatch of Id.t
+        (** Type expects more/less arguments than applied.
+            E.g. `type foo = Foo` (foo expects 0 arguments)
+           `type bar = Bar of int foo` *)
     | OccursIn of Var.t * Ty.t  (** Type variable occurs in a type *)
     | PatVarBoundSeveralTimes of Id.t
         (** Pattern(s) bound the same variable several times. E.g. `let x, x = ..` *)
@@ -60,4 +70,12 @@ module ConSet = struct
 
   let empty : t = Set.empty (module Con)
   let single x : t = Set.singleton (module Con) x
+end
+
+module DefTys = struct
+  (** Holds defined types' names and their arity *)
+  type t = (Id.t, Int.t, Id.comparator_witness) Map.t
+
+  let empty : t = Map.empty (module Id)
+  let single x y : t = Map.singleton (module Id) x y
 end

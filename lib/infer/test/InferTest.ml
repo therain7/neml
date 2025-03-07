@@ -34,7 +34,7 @@ let run' s =
 
       (* print results *)
       Option.iter ty ~f:(print (I "_")) ;
-      List.iter bounds ~f:(fun id -> Map.find_exn env id |> print id) ;
+      List.iter bounds ~f:(fun id -> Map.find_exn env.bounds id |> print id) ;
 
       return env )
   |> map_error ~f:(fun err -> InferError err)

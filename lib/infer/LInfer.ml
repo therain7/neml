@@ -49,10 +49,8 @@ let rename (ty : Ty.t) : Ty.t =
   ISolve.Sub.apply !sub ty
 
 module Env = struct
-  type t = (Id.t, Ty.t, Id.comparator_witness) Map.t
-
-  let empty : t = Map.empty (module Id)
-  let single x y : t = Map.singleton (module Id) x y
+  type t = {types: DefTys.t; bounds: (Id.t, Ty.t, Id.comparator_witness) Map.t}
+  let empty : t = {types= DefTys.empty; bounds= Map.empty (module Id)}
 end
 
 type output = {ty: Ty.t option; env: Env.t; bounds: Id.t list}
@@ -62,7 +60,13 @@ let infer (env : Env.t) (item : StrItem.t) : (output, IError.t) Result.t =
   let ( let* ) = ( >>= ) in
 
   (* generate type constraints *)
-  let* {assumptions= asm; bounds; constraints= cs; ty} = IGen.gen item in
+  let* {defined_types= new_types; assumptions= asm; bounds; constraints= cs; ty}
+      =
+    IGen.gen env.types item
+  in
+
+  (* persist newly defined types in environment *)
+  let env = {env with types= new_types} in
 
   (* everything left in assumptions are unknown identifiers.
      try to find them in environment and assign respective type
@@ -72,7 +76,7 @@ let infer (env : Env.t) (item : StrItem.t) : (output, IError.t) Result.t =
         let* acc : ConSet.t = acc in
 
         let* sc =
-          Map.find env id
+          Map.find env.bounds id
           |> Option.value_map ~default:(fail (IError.UnboundVariable id))
                ~f:(fun ty -> return (generalize VarSet.empty ty) )
         in
@@ -86,10 +90,11 @@ let infer (env : Env.t) (item : StrItem.t) : (output, IError.t) Result.t =
   let close ty = ISolve.Sub.apply sub ty |> rename in
 
   (* apply substitution & add new bounds to type environment *)
-  let env =
-    Map.fold bounds ~init:env ~f:(fun ~key ~data:var ->
+  let new_bounds =
+    Map.fold bounds ~init:env.bounds ~f:(fun ~key ~data:var ->
         Map.set ~key ~data:(close (Var var)) )
   in
+  let env = {env with bounds= new_bounds} in
   let ty = Option.map ty ~f:close in
 
   return {ty; env; bounds= Map.keys bounds}
