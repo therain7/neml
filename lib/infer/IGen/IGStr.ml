@@ -44,20 +44,9 @@ let gen (deftys : DefTys.t) :
   | Eval expr ->
       let* asm, ty = IGExpr.gen expr in
       return (deftys, asm, Bounds.empty, Some ty)
-  | Let (Nonrec, bindings) ->
-      let* asm, bounds =
-        fold ~dir:`Left (List1.to_list bindings) ~init:(As.empty, Bounds.empty)
-          ~f:(fun (as_acc, bounds_acc) {pat; expr} ->
-            let* as_pat, bounds_pat, ty_pat = IGPat.gen pat in
-            let* as_expr, ty_expr = IGExpr.gen expr in
-
-            let* () = cs [ty_pat == ty_expr] in
-            let* bounds = Bounds.merge bounds_acc bounds_pat in
-            return (as_acc ++ as_pat ++ as_expr, bounds) )
-      in
+  | Let (recf, bindings) ->
+      let* asm, bounds = IGExpr.gen_let recf (List1.to_list bindings) in
       return (deftys, asm, bounds, None)
-  | Let (Rec, _) ->
-      fail (NotImplemented "recursive value bindings")
   | Type {id; params; variants} ->
       let deftys = Map.set deftys ~key:id ~data:(Set.length params) in
       let defined : Ty.t =

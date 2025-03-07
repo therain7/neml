@@ -49,10 +49,11 @@ let env =
        type 'a option = Some of 'a | None;;
        type ('a, 'err) result = Ok of 'a | Err of 'err;;
        type 'a list = [] | (::) of 'a * 'a list;;
-       let (+) (x: int) (y: int) = 0;;
-       let (-) (x: int) (y: int) = 0;;
-       let (=) (x: int) (y: int) = false;;
-       let (<) (x: int) (y: int) = false;;
+       let ( + ) (x: int) (y: int) = 0;;
+       let ( - ) (x: int) (y: int) = 0;;
+       let ( * ) (x: int) (y: int) = 0;;
+       let ( = ) (x: int) (y: int) = false;;
+       let ( < ) (x: int) (y: int) = false;;
        let id x = x |}
   |> Result.ok |> Option.value_exn
 
@@ -229,35 +230,36 @@ let%expect_test _ =
 
 let%expect_test _ =
   run {| let rec fact n = if n < 2 then 1 else n * fact (n - 1) in fact |} ;
-  [%expect {| (NotImplemented "recursive value bindings") |}]
+  [%expect {| _: int -> int |}]
 
 let%expect_test _ =
   run {| let rec fact n = if n < 2 then 1 else n * fact true in fact |} ;
-  [%expect {| (NotImplemented "recursive value bindings") |}]
+  [%expect
+    {| (UnificationFail ((Con ((I "bool"), [])), (Con ((I "int"), [])))) |}]
 
 let%expect_test _ =
   run {| let rec fact n = if n < 2 then 1 else n * fact (n - 1)  |} ;
-  [%expect {| (NotImplemented "recursive value bindings") |}]
+  [%expect {| fact: int -> int |}]
 
 let%expect_test _ =
   run {| let rec fact n = if n < 2 then 1 else n * fact true  |} ;
-  [%expect {| (NotImplemented "recursive value bindings") |}]
+  [%expect
+    {| (UnificationFail ((Con ((I "bool"), [])), (Con ((I "int"), [])))) |}]
 
 let%expect_test _ =
   run {| let rec f x = f 5 in f |} ;
-  [%expect {| (NotImplemented "recursive value bindings") |}]
+  [%expect {| _: int -> 'a |}]
 
 let%expect_test _ =
   run {| let rec _ = id in 1 |} ;
-  [%expect {| (NotImplemented "recursive value bindings") |}]
+  [%expect {| (NotVarLHSRec Any) |}]
 
 let%expect_test _ =
-  run {| let rec _ = id |} ;
-  [%expect {| (NotImplemented "recursive value bindings") |}]
+  run {| let rec _ = id |} ; [%expect {| (NotVarLHSRec Any) |}]
 
 let%expect_test _ =
   run {| let rec Some x = Some 1 in x |} ;
-  [%expect {| (NotImplemented "recursive value bindings") |}]
+  [%expect {| (NotVarLHSRec (Construct ((I "Some"), (Some (Var (I "x")))))) |}]
 
 let%expect_test _ = run {| let f x = x |} ; [%expect {| f: 'a -> 'a |}]
 
@@ -306,15 +308,23 @@ let%expect_test _ =
 
 let%expect_test _ =
   run {| let rec x = x + 1 |} ;
-  [%expect {| (NotImplemented "recursive value bindings") |}]
+  [%expect
+    {|
+    (NotAllowedRHSRec
+       (Apply ((Apply ((Id (I "+")), (Id (I "x")))), (Const (Int 1)))))
+    |}]
 
 let%expect_test _ =
   run {| let rec x = x + 1 in x |} ;
-  [%expect {| (NotImplemented "recursive value bindings") |}]
+  [%expect
+    {|
+    (NotAllowedRHSRec
+       (Apply ((Apply ((Id (I "+")), (Id (I "x")))), (Const (Int 1)))))
+    |}]
 
 let%expect_test _ =
   run {| let rec y = 1 in let rec x = y in x |} ;
-  [%expect {| (NotImplemented "recursive value bindings") |}]
+  [%expect {| _: int |}]
 
 let%expect_test _ =
   run
@@ -371,3 +381,10 @@ let%expect_test _ =
 let%expect_test _ =
   run {| let f (x: 'a) (y: 'b) = (x + 5: 'b) |} ;
   [%expect {| f: int -> int -> int |}]
+
+let%expect_test _ =
+  run {| let rec f _ = g 47 and g _ = f 42 |} ;
+  [%expect {|
+    f: int -> 'a
+    g: int -> 'a
+    |}]
