@@ -65,21 +65,20 @@ let%expect_test _ =
 
 let%expect_test _ =
   run {| fun x -> let y = x in y |} ;
-  [%expect {| _: 'gen2 -> 'gen2 |}]
+  [%expect {| _: 'a -> 'a |}]
 
 let%expect_test _ =
   run {|
     fun x ->
       let y = fun z -> x z in y |} ;
-  [%expect {| _: ('gen4 -> 'gen5) -> 'gen4 -> 'gen5 |}]
+  [%expect {| _: ('a -> 'b) -> 'a -> 'b |}]
 
 let%expect_test _ =
-  run {| fun x f -> f x |} ;
-  [%expect {| _: 'gen3 -> ('gen3 -> 'gen4) -> 'gen4 |}]
+  run {| fun x f -> f x |} ; [%expect {| _: 'a -> ('a -> 'b) -> 'b |}]
 
 let%expect_test _ =
   run {| fun f -> fun x -> f x |} ;
-  [%expect {| _: ('gen3 -> 'gen4) -> 'gen3 -> 'gen4 |}]
+  [%expect {| _: ('a -> 'b) -> 'a -> 'b |}]
 
 let%expect_test _ =
   run {| fun f -> fun x -> g x |} ;

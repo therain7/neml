@@ -16,6 +16,38 @@ open ICommon
 
 module IError = IError
 
+(** Rename vars in type to a, b, ... z, t1, t2, ...*)
+let rename (ty : Ty.t) : Ty.t =
+  let next cnt : Ty.t =
+    let () = cnt := !cnt + 1 in
+
+    let a = Char.to_int 'a' in
+    let z = Char.to_int 'z' in
+    let code = !cnt + a in
+
+    if code <= z then Var (V (Char.of_int_exn code |> Char.to_string))
+    else Var (V ("t" ^ Int.to_string !cnt))
+  in
+
+  let open ISolve in
+  let sub = ref Sub.empty in
+
+  let cnt = ref (-1) in
+  let rec traverse : Ty.t -> unit = function
+    | Var var ->
+        if not (Map.mem !sub var) then
+          sub := Map.set !sub ~key:var ~data:(next cnt)
+    | Arr (ty1, ty2) ->
+        traverse ty1 ; traverse ty2
+    | Tuple tys ->
+        List.iter (List2.to_list tys) ~f:traverse
+    | Con (_, tys) ->
+        List.iter tys ~f:traverse
+  in
+  traverse ty ;
+
+  ISolve.Sub.apply !sub ty
+
 module Env = struct
   type t = (Id.t, Ty.t, Id.comparator_witness) Map.t
 
@@ -51,12 +83,13 @@ let infer (env : Env.t) (item : StrItem.t) : (output, IError.t) Result.t =
 
   (* solve type constraints *)
   let* sub = ISolve.solve cs in
+  let close ty = ISolve.Sub.apply sub ty |> rename in
 
   (* apply substitution & add new bounds to type environment *)
   let env =
     Map.fold bounds ~init:env ~f:(fun ~key ~data:var ->
-        Map.set ~key ~data:(ISolve.Sub.apply sub (Var var)) )
+        Map.set ~key ~data:(close (Var var)) )
   in
-  let ty = Option.map ty ~f:(ISolve.Sub.apply sub) in
+  let ty = Option.map ty ~f:close in
 
   return {ty; env; bounds= Map.keys bounds}
