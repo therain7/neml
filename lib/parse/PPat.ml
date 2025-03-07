@@ -15,8 +15,7 @@ open LMisc
 open LAst
 open PCommon
 
-let pany = char '_' *> return Pat.Any
-let pvar = pvalue_id >>| fun id -> Pat.Var id
+let pvar = pvalue_id >>| function I "_" -> Pat.Any | id -> Pat.Var id
 let pconst = pconst >>| fun const -> Pat.Const const
 
 (** [Cons (hd, tl)] *)
@@ -54,8 +53,7 @@ let pparens ppat =
 
 let poprnd ppat =
   fix (fun poprnd ->
-      ws
-      *> choice [pany; pvar; pconst; pconstruct poprnd; plist ppat; pparens ppat] )
+      ws *> choice [pvar; pconst; pconstruct poprnd; plist ppat; pparens ppat] )
 
 (* ======= Operators ======= *)
 
