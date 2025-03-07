@@ -9,7 +9,6 @@
 open! Base
 open PPrint
 
-open LMisc
 open LAst
 open PpCommon
 
