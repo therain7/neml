@@ -35,20 +35,24 @@ let pp_stritem : StrItem.t -> document =
       in
 
       let variants =
-        List.map (List1.to_list variants) ~f:(fun {id; arg} ->
-            group @@ pp_id id
-            ^^ optional
-                 (fun ty -> string " of" ^^ nest 2 (break 1 ^^ PpTy.pp ty))
-                 arg )
+        let variants =
+          List.map variants ~f:(fun {id; arg} ->
+              group @@ pp_id id
+              ^^ optional
+                   (fun ty -> string " of" ^^ nest 2 (break 1 ^^ PpTy.pp ty))
+                   arg )
+        in
+        let doc =
+          string " ="
+          ^^ group
+               ( break 1
+               ^^ ifflat empty (string "| ")
+               ^^ separate (break 1 ^^ string "| ") variants )
+        in
+        if List.is_empty variants then empty else doc
       in
 
-      group @@ string "type"
-      ^^ group (break 1)
-      ^^ params ^^ id ^^ string " ="
-      ^^ group
-           ( break 1
-           ^^ ifflat empty (string "| ")
-           ^^ separate (break 1 ^^ string "| ") variants )
+      group @@ string "type" ^^ group (break 1) ^^ params ^^ id ^^ variants
 
 let pp_structure (str : structure) : document =
   let open PPrint in
