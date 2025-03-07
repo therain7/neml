@@ -109,8 +109,30 @@ let rec gen : Expr.t -> (As.t * Ty.t) IGMonad.t = function
       in
 
       return (as_scr ++ as_cases, ty_res)
-  | Function _ ->
-      fail (NotImplemented "`function` pattern matching")
+  | Function cases ->
+      let* ty_scr = fresh >>| fun var -> Ty.Var var in
+
+      let gen_case Expr.{pat; expr= erhs} =
+        let* as_pat, bounds, ty_pat = IGPat.gen pat in
+        let* as_rhs, ty_rhs =
+          extend_vars (Set.of_list (module Var) (Map.data bounds)) (gen erhs)
+        in
+
+        let* () = cs [ty_pat == ty_scr] in
+        let* () = resolve_asm bounds as_rhs `Eq in
+
+        return (as_pat ++ (as_rhs -- Map.keys bounds), ty_rhs)
+      in
+
+      let* ty_res = fresh >>| fun var -> Ty.Var var in
+      let* as_cases =
+        fold ~dir:`Left (List1.to_list cases) ~init:As.empty ~f:(fun acc case ->
+            let* as_case, ty_case = gen_case case in
+            let* () = cs [ty_case == ty_res] in
+            return (acc ++ as_case) )
+      in
+
+      return (as_cases, Ty.Arr (ty_scr, ty_res))
 
 and gen_many :
     dir:[`Left | `Right] -> Expr.t list -> (As.t * Ty.t list) IGMonad.t =

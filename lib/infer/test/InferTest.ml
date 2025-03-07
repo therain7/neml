@@ -210,11 +210,12 @@ let%expect_test _ =
 
 let%expect_test _ =
   run {| function Some x -> x | None -> 0 |} ;
-  [%expect {| (NotImplemented "`function` pattern matching") |}]
+  [%expect {| _: int option -> int |}]
 
 let%expect_test _ =
   run {| function Some id -> id "hi"; id 5 | None -> 1 |} ;
-  [%expect {| (NotImplemented "`function` pattern matching") |}]
+  [%expect
+    {| (UnificationFail ((Con ((I "string"), [])), (Con ((I "int"), [])))) |}]
 
 let%expect_test _ =
   run {| fun arg -> match arg with Some x -> let y = x in y |} ;
@@ -222,11 +223,11 @@ let%expect_test _ =
 
 let%expect_test _ =
   run {| function [x] -> let y = x in y |} ;
-  [%expect {| (NotImplemented "`function` pattern matching") |}]
+  [%expect {| _: 'a list -> 'a |}]
 
 let%expect_test _ =
   run {| function 42 -> true | _ -> false |} ;
-  [%expect {| (NotImplemented "`function` pattern matching") |}]
+  [%expect {| _: int -> bool |}]
 
 let%expect_test _ =
   run {| let rec fact n = if n < 2 then 1 else n * fact (n - 1) in fact |} ;
@@ -364,19 +365,19 @@ let%expect_test _ =
 
 let%expect_test _ =
   run {| function Some x | Some y -> 0 |} ;
-  [%expect {| (NotImplemented "`function` pattern matching") |}]
+  [%expect {| (NotImplemented "or patterns") |}]
 
 let%expect_test _ =
   run {| function Some x | Some (Some x) -> 1 |} ;
-  [%expect {| (NotImplemented "`function` pattern matching") |}]
+  [%expect {| (NotImplemented "or patterns") |}]
 
 let%expect_test _ =
   run {| function Some 1 | Some "42" -> 0 |} ;
-  [%expect {| (NotImplemented "`function` pattern matching") |}]
+  [%expect {| (NotImplemented "or patterns") |}]
 
 let%expect_test _ =
   run {| function 1 | 2 -> 0 |} ;
-  [%expect {| (NotImplemented "`function` pattern matching") |}]
+  [%expect {| (NotImplemented "or patterns") |}]
 
 let%expect_test _ =
   run {| let f (x: 'a) (y: 'b) = (x + 5: 'b) |} ;
