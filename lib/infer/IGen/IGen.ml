@@ -17,9 +17,15 @@ module As = IGCommon.As
 module Bounds = IGCommon.Bounds
 
 type output =
-  {assumptions: As.t; bounds: Bounds.t; constraints: ConSet.t; ty: Ty.t option}
+  { defined_types: DefTys.t
+  ; assumptions: As.t
+  ; bounds: Bounds.t
+  ; constraints: ConSet.t
+  ; ty: Ty.t option }
 
-let gen (item : StrItem.t) : (output, IError.t) Result.t =
+let gen (deftys : DefTys.t) (item : StrItem.t) : (output, IError.t) Result.t =
   let open Result in
-  let constraints, res = IGCommon.IGMonad.run (IGStr.gen item) in
-  res >>| fun (assumptions, bounds, ty) -> {assumptions; bounds; constraints; ty}
+  let constraints, res = IGCommon.IGMonad.run (IGStr.gen deftys item) in
+  res
+  >>| fun (defined_types, assumptions, bounds, ty) ->
+  {defined_types; assumptions; bounds; constraints; ty}
