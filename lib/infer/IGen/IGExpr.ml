@@ -36,18 +36,7 @@ let rec gen : Expr.t -> (As.t * Ty.t) IGMonad.t = function
       let* as_expr, ty_expr =
         extend_vars (Set.of_list (module Var) (Map.data bounds)) (gen expr)
       in
-
-      (* create constraints for the type of every pattern
-         and its occurrences in expression *)
-      let* () =
-        Map.fold bounds ~init:(return ()) ~f:(fun ~key:id ~data:var_pat acc ->
-            let* () = acc in
-            Map.find as_expr id
-            |> Option.value ~default:VarSet.empty
-            |> Set.fold ~init:(return ()) ~f:(fun acc var_expr ->
-                   let* () = acc in
-                   cs [Var var_pat == Var var_expr] ) )
-      in
+      let* () = resolve_asm bounds as_expr `Eq in
 
       let ty_res =
         List.fold ty_args ~init:ty_expr ~f:(fun acc ty_arg ->
@@ -96,22 +85,32 @@ let rec gen : Expr.t -> (As.t * Ty.t) IGMonad.t = function
       let* as_bindings, bounds = gen_let recf (List1.to_list bindings) in
       let* as_expr, ty_expr = gen expr in
 
-      let* bound_vars = bound_vars in
-      let* () =
-        Map.fold bounds ~init:(return ()) ~f:(fun ~key:id ~data:var_pat acc ->
-            let* () = acc in
-            Map.find as_expr id
-            |> Option.value ~default:VarSet.empty
-            |> Set.fold ~init:(return ()) ~f:(fun acc var_expr ->
-                   let* () = acc in
-                   cs [ImplInst (Var var_expr, bound_vars, Var var_pat)] ) )
+      let* () = resolve_asm bounds as_expr `ImplInst in
+      return (as_bindings ++ (as_expr -- Map.keys bounds), ty_expr)
+  | Match (scrutinee, cases) ->
+      let* as_scr, ty_scr = gen scrutinee in
+
+      let gen_case Expr.{pat; expr= erhs} =
+        let* as_pat, bounds, ty_pat = IGPat.gen pat in
+        let* as_rhs, ty_rhs = gen erhs in
+
+        let* () = cs [ty_pat == ty_scr] in
+        let* () = resolve_asm bounds as_rhs `ImplInst in
+
+        return (as_pat ++ (as_rhs -- Map.keys bounds), ty_rhs)
       in
 
-      return (as_bindings ++ (as_expr -- Map.keys bounds), ty_expr)
+      let* ty_res = fresh >>| fun var -> Ty.Var var in
+      let* as_cases =
+        fold ~dir:`Left (List1.to_list cases) ~init:As.empty ~f:(fun acc case ->
+            let* as_case, ty_case = gen_case case in
+            let* () = cs [ty_case == ty_res] in
+            return (acc ++ as_case) )
+      in
+
+      return (as_scr ++ as_cases, ty_res)
   | Function _ ->
       fail (NotImplemented "`function` pattern matching")
-  | Match _ ->
-      fail (NotImplemented "pattern matching")
 
 and gen_many :
     dir:[`Left | `Right] -> Expr.t list -> (As.t * Ty.t list) IGMonad.t =
@@ -119,6 +118,25 @@ and gen_many :
   fold l ~dir ~init:(As.empty, []) ~f:(fun (as_acc, tys_acc) expr ->
       let* as_expr, ty_expr = gen expr in
       return (as_acc ++ as_expr, ty_expr :: tys_acc) )
+
+(** Create constraints for the type of every pattern and its occurrences in expression *)
+and resolve_asm (bounds : Bounds.t) (asm : As.t) (con : [`Eq | `ImplInst]) =
+  let* bound_vars = bound_vars in
+  Map.fold bounds ~init:(return ()) ~f:(fun ~key:id ~data:var_pat acc ->
+      let* () = acc in
+
+      let vars_expr = Map.find asm id |> Option.value ~default:VarSet.empty in
+      Set.fold vars_expr ~init:(return ()) ~f:(fun acc var_expr ->
+          let* () = acc in
+
+          let con =
+            match con with
+            | `Eq ->
+                Var var_expr == Var var_pat
+            | `ImplInst ->
+                ImplInst (Var var_expr, bound_vars, Var var_pat)
+          in
+          cs [con] ) )
 
 and gen_let (recf : Expr.rec_flag) (bindings : Expr.value_binding list) =
   (* checks recursive binding for forbidden expressions *)
@@ -150,13 +168,6 @@ and gen_let (recf : Expr.rec_flag) (bindings : Expr.value_binding list) =
 
   match recf with
   | Rec ->
-      Map.fold bounds ~init:(return ()) ~f:(fun ~key:id ~data:var_pat acc ->
-          let* () = acc in
-          Map.find asm id
-          |> Option.value ~default:VarSet.empty
-          |> Set.fold ~init:(return ()) ~f:(fun acc var_expr ->
-                 let* () = acc in
-                 cs [Var var_expr == Var var_pat] ) )
-      *> return (asm -- Map.keys bounds, bounds)
+      resolve_asm bounds asm `Eq *> return (asm -- Map.keys bounds, bounds)
   | Nonrec ->
       return (asm, bounds)
