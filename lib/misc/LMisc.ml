@@ -68,6 +68,7 @@ module type MONAD = sig
   val ( >>= ) : 'a t -> ('a -> 'b t) -> 'b t
   val ( let* ) : 'a t -> ('a -> 'b t) -> 'b t
   val ( >>| ) : 'a t -> ('a -> 'b) -> 'b t
+  val ( *> ) : 'a t -> 'b t -> 'b t
 
   val return : 'a -> 'a t
 end
@@ -95,6 +96,7 @@ end = struct
   let ( let* ) = ( >>= )
 
   let ( >>| ) m f = m >>= fun x -> return (f x)
+  let ( *> ) m1 m2 = m1 >>= fun _ -> m2
 
   let put st _ = (st, Ok ())
   let get st = (st, Ok st)

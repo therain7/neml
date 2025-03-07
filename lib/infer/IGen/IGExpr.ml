@@ -92,17 +92,8 @@ let rec gen : Expr.t -> (As.t * Ty.t) IGMonad.t = function
       let* as_expr, ty_expr = gen expr in
       let* () = cs [ty_expr == ty] in
       return (as_expr, ty_expr)
-  | Let (Nonrec, bindings, expr) ->
-      let* as_bindings, bounds =
-        fold ~dir:`Left (List1.to_list bindings) ~init:(As.empty, Bounds.empty)
-          ~f:(fun (as_acc, bounds_acc) {pat; expr} ->
-            let* as_pat, bounds_pat, ty_pat = IGPat.gen pat in
-            let* as_expr, ty_expr = gen expr in
-
-            let* () = cs [ty_pat == ty_expr] in
-            let* bounds = Bounds.merge bounds_acc bounds_pat in
-            return (as_acc ++ as_pat ++ as_expr, bounds) )
-      in
+  | Let (recf, bindings, expr) ->
+      let* as_bindings, bounds = gen_let recf (List1.to_list bindings) in
       let* as_expr, ty_expr = gen expr in
 
       let* bound_vars = bound_vars in
@@ -117,8 +108,6 @@ let rec gen : Expr.t -> (As.t * Ty.t) IGMonad.t = function
       in
 
       return (as_bindings ++ (as_expr -- Map.keys bounds), ty_expr)
-  | Let (Rec, _, _) ->
-      fail (NotImplemented "recursive value bindings")
   | Function _ ->
       fail (NotImplemented "`function` pattern matching")
   | Match _ ->
@@ -130,3 +119,44 @@ and gen_many :
   fold l ~dir ~init:(As.empty, []) ~f:(fun (as_acc, tys_acc) expr ->
       let* as_expr, ty_expr = gen expr in
       return (as_acc ++ as_expr, ty_expr :: tys_acc) )
+
+and gen_let (recf : Expr.rec_flag) (bindings : Expr.value_binding list) =
+  (* checks recursive binding for forbidden expressions *)
+  let check_rec (vb : Expr.value_binding) : unit t =
+    let* bound =
+      match vb.pat with Var id -> return id | pat -> fail (NotVarLHSRec pat)
+    in
+    match vb.expr with
+    | Fun _ | Function _ | Const _ ->
+        return ()
+    | Id id when not (Id.equal id bound) ->
+        return ()
+    | expr ->
+        fail (NotAllowedRHSRec expr)
+  in
+
+  let* asm, bounds =
+    fold ~dir:`Left bindings ~init:(As.empty, Bounds.empty)
+      ~f:(fun (as_acc, bounds_acc) vb ->
+        let* () = match recf with Rec -> check_rec vb | Nonrec -> return () in
+
+        let* as_pat, bounds_pat, ty_pat = IGPat.gen vb.pat in
+        let* as_expr, ty_expr = gen vb.expr in
+
+        let* () = cs [ty_pat == ty_expr] in
+        let* bounds = Bounds.merge bounds_acc bounds_pat in
+        return (as_acc ++ as_pat ++ as_expr, bounds) )
+  in
+
+  match recf with
+  | Rec ->
+      Map.fold bounds ~init:(return ()) ~f:(fun ~key:id ~data:var_pat acc ->
+          let* () = acc in
+          Map.find asm id
+          |> Option.value ~default:VarSet.empty
+          |> Set.fold ~init:(return ()) ~f:(fun acc var_expr ->
+                 let* () = acc in
+                 cs [Var var_expr == Var var_pat] ) )
+      *> return (asm -- Map.keys bounds, bounds)
+  | Nonrec ->
+      return (asm, bounds)

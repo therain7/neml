@@ -8,6 +8,7 @@
 
 open! Base
 open LMisc
+open LAst
 open LTypes
 
 let debug = ref false
@@ -31,7 +32,13 @@ module IError = struct
            `type bar = Bar of int foo` *)
     | OccursIn of Var.t * Ty.t  (** Type variable occurs in a type *)
     | PatVarBoundSeveralTimes of Id.t
-        (** Pattern(s) bound the same variable several times. E.g. `let x, x = ..` *)
+        (** Pattern(s) bound the same variable several times. E.g. `let x, x = ...` *)
+    | NotVarLHSRec of Pat.t
+        (** The left hand side of the recursive binding is not a var.
+            E.g. `let rec _ = ...` *)
+    | NotAllowedRHSRec of Expr.t
+        (** The expression is not allowed on the right-hand side of `let rec'.
+            E.g. `let rec x = x + 1` *)
     | NotImplemented of string  (** Too bad something's not done *)
   [@@deriving show {with_path= false}]
 end
