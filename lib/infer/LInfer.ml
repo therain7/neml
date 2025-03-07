@@ -36,9 +36,10 @@ let rename (ty : Ty.t) : Ty.t =
 
   let cnt = ref (-1) in
   let rec traverse : Ty.t -> unit = function
-    | Var var ->
-        if not (Map.mem !sub var) then
-          sub := Map.set !sub ~key:var ~data:(next cnt)
+    | Var var when not (Map.mem !sub var) ->
+        sub := Map.set !sub ~key:var ~data:(next cnt)
+    | Var _ ->
+        ()
     | Arr (ty1, ty2) ->
         traverse ty1 ; traverse ty2
     | Tuple tys ->

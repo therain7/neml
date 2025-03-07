@@ -85,7 +85,7 @@ module MakeSEMonad (StateT : T) (ErrorT : T) : sig
 end = struct
   type 'a t = StateT.t -> StateT.t * ('a, ErrorT.t) Result.t
 
-  let run m st = m st
+  let run m = m
   let return x st = (st, Ok x)
   let fail err st = (st, Error err)
 

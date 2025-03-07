@@ -99,7 +99,7 @@ module As = struct
 
   let empty : t = Map.empty (module Id)
   let single x y : t = Map.singleton (module Id) x y
-  let merge = Map.merge_skewed ~combine:(fun ~key:_ v1 v2 -> Set.union v1 v2)
+  let merge = Map.merge_skewed ~combine:(fun ~key:_ -> Set.union)
 end
 
 module Bounds = struct
