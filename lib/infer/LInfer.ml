@@ -16,6 +16,8 @@ open ICommon
 
 module IError = IError
 
+let debug = debug
+
 (** Rename vars in type to a, b, ... z, t1, t2, ...*)
 let rename (ty : Ty.t) : Ty.t =
   let next cnt : Ty.t =
