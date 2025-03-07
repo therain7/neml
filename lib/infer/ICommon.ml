@@ -10,6 +10,8 @@ open! Base
 open LMisc
 open LTypes
 
+let debug = ref false
+
 module IError = struct
   type t =
     | UnboundVariable of Id.t

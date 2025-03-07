@@ -13,8 +13,6 @@ open LTypes
 
 open ICommon
 
-let debug = false
-
 module Sub = struct
   type t = (Var.t, Ty.t, Var.comparator_witness) Map.t
 
@@ -179,7 +177,7 @@ let rec solve_cs (cs : ConSet.t) : Sub.t t =
       return Sub.empty
 
 and solve_con (con : Con.t) (rest : ConSet.t) : Sub.t t =
-  if debug then Stdlib.Format.printf "solving %a\n" Con.pp con ;
+  if !debug then Stdlib.Format.printf "solving %a\n" Con.pp con ;
   match con with
   | TyEq (ty1, ty2) ->
       let* sub1 = unify ty1 ty2 in
