@@ -19,15 +19,16 @@
 
 (package
  (name neml)
- (synopsis "neml compiler")
+ (synopsis "Neml compiler")
  (description "A compiler for some non-existent programming language")
  (depends
   ocaml
   dune
   base
-  pprint
   stdio
+  bisect_ppx
+  ppx_expect
+  pprint
   angstrom
   ppx_deriving
-  ppx_sexp_conv
-  ppx_expect))
+  ppx_sexp_conv))
