@@ -126,7 +126,7 @@ let%expect_test _ =
 let%expect_test _ =
   run {| fun f -> (fun x -> f (x x)) (fun x -> f (x x)) |} ;
   [%expect
-    {| (OccursIn ((V "gen3"), (Arr ((Var (V "gen3")), (Var (V "gen5")))))) |}]
+    {| (OccursIn ((V "gen1"), (Arr ((Var (V "gen1")), (Var (V "gen5")))))) |}]
 
 let%expect_test _ =
   run {| fun x y (a, _) -> (x + y - a) = 1 |} ;
@@ -196,7 +196,7 @@ let%expect_test _ =
       | Some x -> x "hi"; x 5
       | None -> 1
     |} ;
-  [%expect {| (NotImplemented "pattern matching") |}]
+  [%expect {| _: int |}]
 
 let%expect_test _ =
   run
@@ -206,7 +206,7 @@ let%expect_test _ =
         | Some v -> Some (v + 1)
         | None -> None
     |} ;
-  [%expect {| (NotImplemented "pattern matching") |}]
+  [%expect {| _: int option -> int option |}]
 
 let%expect_test _ =
   run {| function Some x -> x | None -> 0 |} ;
@@ -218,7 +218,7 @@ let%expect_test _ =
 
 let%expect_test _ =
   run {| fun arg -> match arg with Some x -> let y = x in y |} ;
-  [%expect {| (NotImplemented "pattern matching") |}]
+  [%expect {| _: 'a option -> 'a |}]
 
 let%expect_test _ =
   run {| function [x] -> let y = x in y |} ;
