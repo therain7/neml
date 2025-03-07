@@ -89,7 +89,6 @@ let rec gen : Expr.t -> (As.t * Ty.t) IGMonad.t = function
 
       return (as_con ++ as_arg, ty_res)
   | Constraint (expr, ty) ->
-      (* XXX: collisions *)
       let* as_expr, ty_expr = gen expr in
       let* () = cs [ty_expr == ty] in
       return (as_expr, ty_expr)

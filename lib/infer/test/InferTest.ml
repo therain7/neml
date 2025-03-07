@@ -367,3 +367,7 @@ let%expect_test _ =
 let%expect_test _ =
   run {| function 1 | 2 -> 0 |} ;
   [%expect {| (NotImplemented "`function` pattern matching") |}]
+
+let%expect_test _ =
+  run {| let f (x: 'a) (y: 'b) = (x + 5: 'b) |} ;
+  [%expect {| f: int -> int -> int |}]
