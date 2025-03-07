@@ -51,7 +51,10 @@ let rename (ty : Ty.t) : Ty.t =
   ISolve.Sub.apply !sub ty
 
 module Env = struct
+  (** Type environment contains info about defined types
+      & identifiers' bindings to their types *)
   type t = {types: DefTys.t; bounds: (Id.t, Ty.t, Id.comparator_witness) Map.t}
+
   let empty : t = {types= DefTys.empty; bounds= Map.empty (module Id)}
 end
 
