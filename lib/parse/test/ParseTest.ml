@@ -270,3 +270,9 @@ let%expect_test _ = run {| 1 ;; a |} ; [%expect {|
 
     a
     |}]
+
+let%expect_test _ = run {| type foo |} ; [%expect {| type foo |}]
+
+let%expect_test _ =
+  run {| type ('a, 'b) bar |} ;
+  [%expect {| type ('a, 'b) bar |}]

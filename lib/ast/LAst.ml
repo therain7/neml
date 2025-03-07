@@ -73,7 +73,7 @@ module StrItem = struct
   [@@deriving show {with_path= false}]
 
   (** Variant type declaration *)
-  type type_decl = {id: Id.t; params: VarSet.t; variants: construct_decl List1.t}
+  type type_decl = {id: Id.t; params: VarSet.t; variants: construct_decl list}
   [@@deriving show {with_path= false}]
 
   type t =

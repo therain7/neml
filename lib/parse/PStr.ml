@@ -50,10 +50,10 @@ let pty_decl =
   in
   let* id = ws *> pty_con_id in
   let* variants =
-    ws *> string "=" *> ws
-    *> opt (string "|")
-    *> sep_by1 (ws *> char '|') (ws *> pconstruct_decl_)
-    >>| List1.of_list_exn
+    option []
+    @@ ws *> string "=" *> ws
+       *> opt (string "|")
+       *> sep_by1 (ws *> char '|') (ws *> pconstruct_decl_)
   in
   return (StrItem.Type {id; params; variants})
 

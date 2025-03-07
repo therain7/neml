@@ -65,7 +65,7 @@ let gen (deftys : DefTys.t) :
       in
 
       let* bounds =
-        fold ~dir:`Left (List1.to_list variants) ~init:Bounds.empty
+        fold ~dir:`Left variants ~init:Bounds.empty
           ~f:(fun acc {id= id_con; arg} ->
             let* var = fresh in
 
