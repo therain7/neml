@@ -13,7 +13,7 @@ module Format = Stdlib.Format
 
 type err = ParseError | InferError of LInfer.IError.t
 
-let run' s =
+let run' ?(silent = false) (env : LInfer.Env.t) s =
   let print id ty =
     let open PPrint in
     let doc =
@@ -29,18 +29,35 @@ let run' s =
     LParse.parse s |> Option.value_map ~default:(fail ParseError) ~f:return
   in
 
-  List.fold_result structure ~init:LInfer.Env.empty ~f:(fun env item ->
+  List.fold_result structure ~init:env ~f:(fun env item ->
       let* {ty; env; bounds} = LInfer.infer env item in
 
       (* print results *)
-      Option.iter ty ~f:(print (I "_")) ;
-      List.iter bounds ~f:(fun id -> Map.find_exn env.bounds id |> print id) ;
+      if not silent then (
+        Option.iter ty ~f:(print (I "_")) ;
+        List.iter bounds ~f:(fun id -> Map.find_exn env.bounds id |> print id) ) ;
 
       return env )
   |> map_error ~f:(fun err -> InferError err)
 
+let env =
+  run' ~silent:true LInfer.Env.empty
+    {| type int;;
+       type string;;
+       type unit = ()
+       type bool = true | false;;
+       type 'a option = Some of 'a | None;;
+       type ('a, 'err) result = Ok of 'a | Err of 'err;;
+       type 'a list = [] | (::) of 'a * 'a list;;
+       let (+) (x: int) (y: int) = 0;;
+       let (-) (x: int) (y: int) = 0;;
+       let (=) (x: int) (y: int) = false;;
+       let (<) (x: int) (y: int) = false;;
+       let id x = x |}
+  |> Result.ok |> Option.value_exn
+
 let run s =
-  match run' s with
+  match run' env s with
   | Error ParseError ->
       print_endline "syntax error"
   | Error (InferError err) ->
@@ -83,3 +100,270 @@ let%expect_test _ =
 let%expect_test _ =
   run {| fun f -> fun x -> g x |} ;
   [%expect {| (UnboundVariable (I "g")) |}]
+
+let%expect_test _ =
+  run {|
+    fun m -> let y = m in
+    let x = y true in x
+  |} ;
+  [%expect {| _: (bool -> 'a) -> 'a |}]
+
+let%expect_test _ =
+  run
+    {|
+    (fun x -> x + 1)
+    ( (fun y -> if y then true else false) false )
+  |} ;
+  [%expect
+    {| (UnificationFail ((Con ((I "int"), [])), (Con ((I "bool"), [])))) |}]
+
+let%expect_test _ =
+  run {| fun x -> if x then 42 else x |} ;
+  [%expect
+    {| (UnificationFail ((Con ((I "int"), [])), (Con ((I "bool"), [])))) |}]
+
+let%expect_test _ =
+  run {| fun f -> (fun x -> f (x x)) (fun x -> f (x x)) |} ;
+  [%expect
+    {| (OccursIn ((V "gen3"), (Arr ((Var (V "gen3")), (Var (V "gen5")))))) |}]
+
+let%expect_test _ =
+  run {| fun x y (a, _) -> (x + y - a) = 1 |} ;
+  [%expect {| _: int -> int -> int * 'a -> bool |}]
+
+let%expect_test _ =
+  run {|
+    let x, Some f = 1, Some ( ( + ) 4 )
+    in f x |} ;
+  [%expect {| _: int |}]
+
+let%expect_test _ =
+  run {| Some (1, "hi") |} ; [%expect {| _: (int * string) option |}]
+
+let%expect_test _ = run {| None |} ; [%expect {| _: 'a option |}]
+
+let%expect_test _ = run {| Some |} ; [%expect {| _: 'a -> 'a option |}]
+
+let%expect_test _ =
+  run {| None 42 |} ;
+  [%expect
+    {|
+    (UnificationFail ((Arr ((Con ((I "int"), [])), (Var (V "gen1")))),
+       (Con ((I "option"), [(Var (V "solve0"))]))))
+    |}]
+
+let%expect_test _ =
+  run {| None None |} ;
+  [%expect
+    {|
+    (UnificationFail ((Arr ((Var (V "gen3")), (Var (V "gen1")))),
+       (Con ((I "option"), [(Var (V "solve0"))]))))
+    |}]
+
+let%expect_test _ =
+  run {| let Some = Some 1 in 0 |} ;
+  [%expect
+    {|
+    (UnificationFail (
+       (Arr ((Var (V "solve0")), (Con ((I "option"), [(Var (V "solve0"))])))),
+       (Con ((I "option"), [(Con ((I "int"), []))]))))
+    |}]
+
+let%expect_test _ =
+  run {| let x, Some x = 1, Some 2 in x |} ;
+  [%expect {| (PatVarBoundSeveralTimes (I "x")) |}]
+
+let%expect_test _ =
+  run {| fun x x -> x |} ; [%expect {| (PatVarBoundSeveralTimes (I "x")) |}]
+
+let%expect_test _ =
+  run {| let a, _ = 1, 2, 3 in a |} ;
+  [%expect
+    {|
+    (UnificationMismatch ([(Var (V "gen1")); (Var (V "gen0"))],
+       [(Con ((I "int"), [])); (Con ((I "int"), [])); (Con ((I "int"), []))]))
+    |}]
+
+let%expect_test _ =
+  run {| let a = 1, (fun (a, _) -> a), 2 in a|} ;
+  [%expect {| _: int * ('a * 'b -> 'a) * int |}]
+
+let%expect_test _ =
+  run
+    {|
+    match Some id with
+      | Some x -> x "hi"; x 5
+      | None -> 1
+    |} ;
+  [%expect {| (NotImplemented "pattern matching") |}]
+
+let%expect_test _ =
+  run
+    {|
+    fun x ->
+      match x with
+        | Some v -> Some (v + 1)
+        | None -> None
+    |} ;
+  [%expect {| (NotImplemented "pattern matching") |}]
+
+let%expect_test _ =
+  run {| function Some x -> x | None -> 0 |} ;
+  [%expect {| (NotImplemented "`function` pattern matching") |}]
+
+let%expect_test _ =
+  run {| function Some id -> id "hi"; id 5 | None -> 1 |} ;
+  [%expect {| (NotImplemented "`function` pattern matching") |}]
+
+let%expect_test _ =
+  run {| fun arg -> match arg with Some x -> let y = x in y |} ;
+  [%expect {| (NotImplemented "pattern matching") |}]
+
+let%expect_test _ =
+  run {| function [x] -> let y = x in y |} ;
+  [%expect {| (NotImplemented "`function` pattern matching") |}]
+
+let%expect_test _ =
+  run {| function 42 -> true | _ -> false |} ;
+  [%expect {| (NotImplemented "`function` pattern matching") |}]
+
+let%expect_test _ =
+  run {| let rec fact n = if n < 2 then 1 else n * fact (n - 1) in fact |} ;
+  [%expect {| (NotImplemented "recursive value bindings") |}]
+
+let%expect_test _ =
+  run {| let rec fact n = if n < 2 then 1 else n * fact true in fact |} ;
+  [%expect {| (NotImplemented "recursive value bindings") |}]
+
+let%expect_test _ =
+  run {| let rec fact n = if n < 2 then 1 else n * fact (n - 1)  |} ;
+  [%expect {| (NotImplemented "recursive value bindings") |}]
+
+let%expect_test _ =
+  run {| let rec fact n = if n < 2 then 1 else n * fact true  |} ;
+  [%expect {| (NotImplemented "recursive value bindings") |}]
+
+let%expect_test _ =
+  run {| let rec f x = f 5 in f |} ;
+  [%expect {| (NotImplemented "recursive value bindings") |}]
+
+let%expect_test _ =
+  run {| let rec _ = id in 1 |} ;
+  [%expect {| (NotImplemented "recursive value bindings") |}]
+
+let%expect_test _ =
+  run {| let rec _ = id |} ;
+  [%expect {| (NotImplemented "recursive value bindings") |}]
+
+let%expect_test _ =
+  run {| let rec Some x = Some 1 in x |} ;
+  [%expect {| (NotImplemented "recursive value bindings") |}]
+
+let%expect_test _ = run {| let f x = x |} ; [%expect {| f: 'a -> 'a |}]
+
+let%expect_test _ =
+  run {| let id1, id2 = id, id |} ;
+  [%expect {|
+    id1: 'a -> 'a
+    id2: 'a -> 'a
+    |}]
+
+let%expect_test _ =
+  run {| let Some a = (<) |} ;
+  [%expect
+    {|
+    (UnificationFail ((Con ((I "option"), [(Var (V "solve0"))])),
+       (Arr ((Con ((I "int"), [])),
+          (Arr ((Con ((I "int"), [])), (Con ((I "bool"), []))))))
+       ))
+    |}]
+
+let%expect_test _ =
+  run {| let Some x = Some id |} ;
+  [%expect {| x: 'a -> 'a |}]
+
+let%expect_test _ =
+  run {| let () = id |} ;
+  [%expect
+    {|
+    (UnificationFail ((Con ((I "unit"), [])),
+       (Arr ((Var (V "solve0")), (Var (V "solve0"))))))
+    |}]
+
+let%expect_test _ =
+  run {| let [a; b] = [(1,2); (3,4)] |} ;
+  [%expect {|
+    a: int * int
+    b: int * int
+    |}]
+
+let%expect_test _ =
+  run {| let [Some(a, b)] = [Some(1,2)] |} ;
+  [%expect {|
+    a: int
+    b: int
+    |}]
+
+let%expect_test _ =
+  run {| let rec x = x + 1 |} ;
+  [%expect {| (NotImplemented "recursive value bindings") |}]
+
+let%expect_test _ =
+  run {| let rec x = x + 1 in x |} ;
+  [%expect {| (NotImplemented "recursive value bindings") |}]
+
+let%expect_test _ =
+  run {| let rec y = 1 in let rec x = y in x |} ;
+  [%expect {| (NotImplemented "recursive value bindings") |}]
+
+let%expect_test _ =
+  run
+    {|
+      type 'a list = Nil | Cons of 'a * 'a list
+      type unit = ()
+      type foo = Foo
+    |} ;
+  [%expect
+    {|
+    Cons: 'a * 'a list -> 'a list
+    Nil: 'a list
+    (): unit
+    Foo: foo
+    |}]
+
+let%expect_test _ =
+  run {| type foo = Foo of 'a list |} ;
+  [%expect {| (UnboundTypeVariable (V "a")) |}]
+
+let%expect_test _ =
+  run {| type foo = Foo of list |} ;
+  [%expect {| (TypeArityMismatch (I "list")) |}]
+
+let%expect_test _ =
+  run {| type foo = Foo of bar |} ;
+  [%expect {| (UnboundType (I "bar")) |}]
+
+let%expect_test _ =
+  run {|
+    type foo = Foo;;
+    type 'a foo = Foo of foo |} ;
+  [%expect {|
+    Foo: foo
+    (TypeArityMismatch (I "foo"))
+    |}]
+
+let%expect_test _ =
+  run {| function Some x | Some y -> 0 |} ;
+  [%expect {| (NotImplemented "`function` pattern matching") |}]
+
+let%expect_test _ =
+  run {| function Some x | Some (Some x) -> 1 |} ;
+  [%expect {| (NotImplemented "`function` pattern matching") |}]
+
+let%expect_test _ =
+  run {| function Some 1 | Some "42" -> 0 |} ;
+  [%expect {| (NotImplemented "`function` pattern matching") |}]
+
+let%expect_test _ =
+  run {| function 1 | 2 -> 0 |} ;
+  [%expect {| (NotImplemented "`function` pattern matching") |}]
