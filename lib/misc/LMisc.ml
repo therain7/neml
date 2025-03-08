@@ -10,12 +10,12 @@ open! Base
 
 (** Identifiers *)
 module Id = struct
-  type t = I of string
+  type t = I of string [@@deriving show {with_path= false}]
 end
 
 (** List containing at least 1 element *)
 module List1 = struct
-  type 'a t = 'a * 'a list
+  type 'a t = 'a * 'a list [@@deriving show {with_path= false}]
 
   let of_list_exn : 'a list -> 'a t = function
     | hd :: tl ->
@@ -28,7 +28,7 @@ end
 
 (** List containing at least 2 elements *)
 module List2 = struct
-  type 'a t = 'a * 'a * 'a list
+  type 'a t = 'a * 'a * 'a list [@@deriving show {with_path= false}]
 
   let of_list_exn : 'a list -> 'a t = function
     | fst :: snd :: tl ->

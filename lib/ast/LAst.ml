@@ -15,8 +15,8 @@ module Const = struct
     | Char of char  (** Character such as ['c'] *)
     | String of string
         (** Constant string such as ["constant"] or [{|other constant|}] *)
+    [@@deriving show {with_path= false}]
 end
-[@@deriving eq, show {with_path= false}]
 
 module Ty = struct
   type t =
@@ -29,8 +29,8 @@ module Ty = struct
           - [T tconstr]             when [l=[T]]
           - [(T1, ..., Tn) tconstr] when [l=[T1, ..., Tn]]
         *)
+        [@@deriving show {with_path= false}]
 end
-[@@deriving eq, show {with_path= false}]
 
 module Pat = struct
   type t =
@@ -45,11 +45,11 @@ module Pat = struct
           - [C P] when [arg] is [Some P]
         *)
     | Constraint of t * Ty.t  (** [(P : T)] *)
+    [@@deriving show {with_path= false}]
 end
-[@@deriving eq, show {with_path= false}]
 
 module Expr = struct
-  type rec_flag = Rec | Nonrec
+  type rec_flag = Rec | Nonrec [@@deriving show {with_path= false}]
 
   type value_binding = {pat: Pat.t; expr: t}
 
@@ -79,16 +79,16 @@ module Expr = struct
     | If of t * t * t option  (** [if E1 then E2 else E3] *)
     | Seq of t List2.t  (** [E1; E2] *)
     | Constraint of t * Ty.t  (** [(E : T)] *)
+    [@@deriving show {with_path= false}]
 end
-[@@deriving eq, show {with_path= false}]
 
 module StrItem = struct
   (** Constructor declaration. E.g. [A of string] *)
   type construct_decl = {id: Id.t; arg: Ty.t option}
-
+  [@@deriving show {with_path= false}]
   (** Variant type declaration *)
   type type_decl = {id: Id.t; params: Id.t list; variants: construct_decl list}
-
+  [@@deriving show {with_path= false}]
   type t =
     | Eval of Expr.t  (** [E] *)
     | Type of type_decl  (** [type ('a, 'b) ab = A of T1 | B of T2 ...] *)
@@ -97,7 +97,7 @@ module StrItem = struct
           - [let P1 = E1 and ... and Pn = EN]      when [flag] is [Nonrec]
           - [let rec P1 = E1 and ... and Pn = EN ] when [flag] is [Rec]
         *)
+  [@@deriving show {with_path= false}]
 end
-[@@deriving eq, show {with_path= false}]
 
-type structure = StrItem.t list [@@deriving eq, show {with_path= false}]
+type structure = StrItem.t list [@@deriving show {with_path= false}]

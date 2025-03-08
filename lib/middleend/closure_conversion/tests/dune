@@ -1,0 +1,7 @@
+(executable
+ (name REPL)
+ (modules REPL)
+ (libraries stdio LCC))
+
+(cram
+ (deps ./REPL.exe ./test.ml))

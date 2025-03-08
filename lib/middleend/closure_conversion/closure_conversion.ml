@@ -12,7 +12,9 @@ open Stdio
 open LMisc
 open LAst
 open Common
+open PPrint
 
+(*
 let rec cc_expr global_env env_map = function
   | Expr.Id (I id) as orig -> (
     match Map.find env_map id with
@@ -172,6 +174,9 @@ let run_closure_conversion program =
   in
   helper empty_global_scope program
 
+
+
+
 let run_cc s =
   match LParse.parse s with
   | None ->
@@ -188,13 +193,36 @@ let run_cc_pp s =
       let str = run_closure_conversion str in
       pp_structure Format.std_formatter str
 
+let run_pp_test s =
+  match LParse.parse s with
+  | None ->
+      print_endline "syntax error"
+  | Some str ->
+      pp_structure Format.std_formatter str
+
+
 let%expect_test _ =
   run_cc_pp {|let (c, d) = (1, 2) in fun a -> a + c + d|} ;
   [%expect
     {|
-       let c, d = 1, 2 in
-       (fun (+) a -> (+) ((+) a c) d) (+)
-       |}]
+    [(Eval
+        (Let (Nonrec,
+           ({ pat = (Tuple ((Var (I "c")), (Var (I "d")), []));
+              expr = (Tuple ((Const (Int 1)), (Const (Int 2)), [])) },
+            []),
+           (Apply (
+              (Fun (((Var (I "+")), [(Var (I "a"))]),
+                 (Apply (
+                    (Apply ((Id (I "+")),
+                       (Apply ((Apply ((Id (I "+")), (Id (I "a")))), (Id (I "c"))
+                          ))
+                       )),
+                    (Id (I "d"))))
+                 )),
+              (Id (I "+"))))
+           )))
+      ]
+    |}]
 
 let%expect_test _ =
   run_cc {|let (c, d) = (1, 2) in fun a -> a + c + d|} ;
@@ -210,8 +238,231 @@ let%expect_test _ =
        let a = (fun (+) x -> (+) x 2) (+)
        |}]
 
+
 let%expect_test _ =
-  run_cc {| let a x = x + 2 |} ;
+  run_pp_test {| let a x y = x + y |} ;
   [%expect {|
-       let a = (fun (+) x -> (+) x 2) (+)
-       |}]
+    [(Let (Nonrec,
+        ({ pat = (Var (I "a"));
+           expr =
+           (Fun (((Var (I "x")), [(Var (I "y"))]),
+              (Apply ((Apply ((Id (I "+")), (Id (I "x")))), (Id (I "y"))))))
+           },
+         [])
+        ))
+      ]
+    |}]
+
+(* let a x = ((fun x y -> (y  +  x)) x);; *)
+
+let%expect_test _ =
+  run_cc_pp {| let a x = x + 2 |} ;
+  [%expect {|
+    [(Let (Nonrec,
+        ({ pat = (Var (I "a"));
+           expr =
+           (Apply (
+              (Fun (((Var (I "+")), [(Var (I "x"))]),
+                 (Apply ((Apply ((Id (I "+")), (Id (I "x")))), (Const (Int 2))))
+                 )),
+              (Id (I "+"))))
+           },
+         [])
+        ))
+      ]
+    |}] *)
+
+let gen_fresh_name =
+  let last = ref 0 in
+  fun () ->
+    incr last ;
+    Format.sprintf "fresh_%d" !last
+
+let group_funs =
+  let rec helper acc = function
+    | Expr.Fun (patterns, body) ->
+        let pat_list = List1.to_list patterns in
+        helper (acc @ pat_list) body
+    | not_a_fun ->
+        (acc, not_a_fun)
+  in
+  helper []
+
+let convert_structure global_env =
+  let open Monands.Store in
+  let save : StrItem.t -> (StrItem.t list, unit) t =
+   fun x ->
+    let* old = get in
+    put (x :: old)
+  in
+  let is_inner_fun = function Expr.Fun _ -> true | _ -> false in
+  let rec helper global_env expr : (StrItem.t list, Expr.t) t =
+    match expr with
+    | (Expr.Const _ | Expr.Id _) as orig ->
+        return orig
+    | Expr.Fun (_, _) as orig -> (
+      match group_funs orig with
+      | pat_list, body ->
+          let free_vars =
+            SS.diff
+              (get_free_vars_from_expr
+                 (Expr.Fun (List1.of_list_exn pat_list, body)) )
+              global_env
+          in
+          let new_f_name = gen_fresh_name () in
+          if SS.is_empty free_vars then
+            let* new_body =
+              helper
+                (SS.union (get_vars_from_patterns pat_list) global_env)
+                body
+            in
+            let* () =
+              save
+                (StrItem.Let
+                   ( Nonrec
+                   , List1.of_list_exn
+                       [ Expr.
+                           { pat= Pat.Var (I new_f_name)
+                           ; expr=
+                               Expr.Fun (List1.of_list_exn pat_list, new_body)
+                           } ] ) )
+            in
+
+            return (Expr.Id (I new_f_name))
+          else
+            let free_vars_list = SS.elements free_vars in
+            let* new_body =
+              helper
+                (SS.union (get_vars_from_patterns pat_list) global_env)
+                body
+            in
+            let new_pattern_list =
+              List.fold_left ~init:pat_list
+                ~f:(fun acc var -> Pat.Var (I var) :: acc)
+                free_vars_list
+            in
+            let new_fun_without_free_args =
+              Expr.Fun (List1.of_list_exn new_pattern_list, new_body)
+            in
+            let* () =
+              save
+                (StrItem.Let
+                   ( Nonrec
+                   , List1.of_list_exn
+                       [ Expr.
+                           { pat= Pat.Var (I new_f_name)
+                           ; expr= new_fun_without_free_args } ] ) )
+            in
+            let new_body_without_closure =
+              List.fold_left ~init:(Expr.Id (I new_f_name))
+                ~f:(fun acc var -> Expr.Apply (acc, Expr.Id (I var)))
+                (List.rev free_vars_list)
+            in
+            return new_body_without_closure )
+    | Expr.Let (Nonrec, bindings, inner_body) ->
+        failwith "Not implemented"
+    | Expr.Apply (func, arg) ->
+        let* new_func = helper global_env func in
+        let* new_arg = helper global_env arg in
+        return (Expr.Apply (new_func, new_arg))
+    | _ ->
+        failwith "Not implemented here"
+  in
+
+  function
+  | StrItem.Let (is_rec, (bindings : Expr.value_binding List1.t)) -> (
+    match List1.to_list bindings with
+    | {pat; expr} :: tl -> (
+      match pat with
+      | Pat.Var (I id) ->
+          let pat_list, body = group_funs expr in
+          let new_global_env = SS.add id global_env in
+          let saved_str_items, last_expr =
+            Monands.Store.run (helper new_global_env body) []
+          in
+          (* List.iter pat_list ~f:(fun var -> PPrint.ToChannel.pretty 1. 40 stdout (LPrint.pp_pat var);); *)
+          (* PPrint.ToChannel.pretty 1. 40 stdout (LPrint.pp_expr body); *)
+          let new_bindings_list =
+            List1.of_list_exn
+              [ Expr.
+                  {pat; expr= Expr.Fun (List1.of_list_exn pat_list, last_expr)}
+              ]
+          in
+
+          let new_str_item = StrItem.Let (is_rec, new_bindings_list) in
+          (* PPrint.ToChannel.pretty 1. 40 stdout (LPrint.pp_stritem new_str_item); *)
+          saved_str_items @ [new_str_item]
+      | _ ->
+          failwith "not implemented 1" )
+    | [] ->
+        failwith "HI" )
+  | StrItem.Eval expr ->
+      let pat_list, body = group_funs expr in
+      let saved_str_items, last_expr =
+        Monands.Store.run (helper global_env body) []
+      in
+      let new_str_item =
+        StrItem.Eval (Expr.Fun (List1.of_list_exn pat_list, last_expr))
+      in
+      saved_str_items @ [new_str_item]
+  | _ ->
+      failwith "LALA"
+
+(* let convert_structure global_env = function
+   | StrItem.Let (Rec, bindings) as str_item ->
+       str_item
+   | StrItem.Let (Nonrec, bindings) as str_item ->
+       let new_bindings = conve
+   | StrItem.Eval _ ->
+       failwith "not implemented"
+   | StrItem.Type _ ->
+       failwith "not implemented" *)
+
+let convert structure =
+  let init = (standart_globals, []) in
+  List.fold_left ~init
+    ~f:(fun (glob, ans) str_item ->
+      let new_str_item = convert_structure glob str_item in
+      let bound_vars_from_str_item =
+        let helper acc = function
+          | StrItem.Let (_, bindings) ->
+              SS.elements
+                (get_vars_from_patterns
+                   (get_patterns_from_bindings (List1.to_list bindings)) )
+              @ acc
+          | StrItem.Eval _ ->
+              acc
+          | StrItem.Type _ ->
+              acc
+        in
+        List.fold_left ~f:helper ~init:[] new_str_item
+      in
+      let new_global_env =
+        List.fold_left ~init:glob
+          ~f:(fun glob var -> SS.add var glob)
+          bound_vars_from_str_item
+      in
+      (new_global_env, new_str_item @ ans) )
+    structure
+  |> snd
+
+let run_pp_test s =
+  match LParse.parse s with
+  | None ->
+      print_endline "syntax error"
+  | Some str ->
+      PPrint.ToChannel.pretty 1. 40 stdout (LPrint.pp_structure str) ;
+
+      PPrint.ToChannel.pretty 1. 40 stdout (PPrint.break 1) ;
+      let str = convert str in
+      PPrint.ToChannel.pretty 1. 40 stdout (LPrint.pp_structure str)
+(* pp_structure Format.std_formatter str *)
+
+let%expect_test _ =
+  run_pp_test {|let add x z = fun y -> x + y + z|} ;
+  [%expect
+    {|
+    let add =
+      fun x z -> fun y -> (+) ((+) x y) z
+    let add = fun x z y -> (+) ((+) x y) z
+    |}]

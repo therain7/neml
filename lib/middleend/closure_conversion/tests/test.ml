@@ -1,0 +1,1 @@
+let add x = fun y -> x + y

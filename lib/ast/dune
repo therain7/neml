@@ -2,5 +2,7 @@
  (name LAst)
  (public_name NeML.Ast)
  (libraries base LMisc)
+ (preprocess
+  (pps ppx_deriving.show))
  (instrumentation
   (backend bisect_ppx)))
