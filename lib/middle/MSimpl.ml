@@ -46,6 +46,7 @@ let rec to_expr : t -> Expr.t = function
 
 type err = NotImplemented of string [@@deriving show {with_path= false}]
 
+(** Converts AST to Simpl IR expression *)
 let from_expr : Expr.t -> (t, err) Result.t =
   let open Result in
   let ( let* ) = ( >>= ) in
