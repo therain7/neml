@@ -18,14 +18,15 @@ let group_funs =
            -> fun ARGS0 .. ARGS1 -> BODY *)
         let args0 = List1.to_list args0 in
         let args1 = List1.to_list args1 in
-        Fun (Nonrec, List.concat [args0; args1] |> List1.of_list_exn, f body)
+        let args = List.concat [args0; args1] |> List1.of_list_exn in
+        f (Fun (Nonrec, args, body))
     | Apply (Fun (Nonrec, args0, Apply (Fun (Nonrec, args1, body), s1)), s2) ->
         (* (fun ARGS0 -> (fun ARGS1 -> BODY) S1) S2
            -> (fun ARGS0 .. ARGS1 BODY) S2 S1 *)
         let args0 = List1.to_list args0 in
         let args1 = List1.to_list args1 in
         let args = List.concat [args0; args1] |> List1.of_list_exn in
-        Apply (Apply (Fun (Nonrec, args, f body), f s2), f s1)
+        f (Apply (Apply (Fun (Nonrec, args, body), s2), s1))
     | Fun (recf, args, sim) ->
         Fun (recf, args, f sim)
     | Apply (sim1, sim2) ->
