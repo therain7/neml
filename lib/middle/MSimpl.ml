@@ -34,7 +34,7 @@ let rec to_expr : t -> Expr.t = function
       Fun (List1.map args ~f:(fun id -> Pat.Var id), to_expr sim)
   | Fun (Rec id, args, sim) ->
       let pats = List1.map (List1.cons id args) ~f:(fun id -> Pat.Var id) in
-      Apply (Id id, Fun (pats, to_expr sim))
+      Apply (Id (I "fix"), Fun (pats, to_expr sim))
   | Apply (sim1, sim2) ->
       Apply (to_expr sim1, to_expr sim2)
   | If (scond, sthen, selse) ->
@@ -44,7 +44,8 @@ let rec to_expr : t -> Expr.t = function
   | Unit ->
       Construct (I "()", None)
 
-type err = NotImplemented of string [@@deriving show {with_path= false}]
+type err = TypeError | NotImplemented of string
+[@@deriving show {with_path= false}]
 
 (** Converts AST to Simpl IR expression *)
 let from_expr : Expr.t -> (t, err) Result.t =
@@ -58,20 +59,20 @@ let from_expr : Expr.t -> (t, err) Result.t =
         fail (NotImplemented "patterns")
   in
 
+  let unpack_many : Pat.t list -> (Id.t list, err) Result.t =
+    List.fold_right ~init:(return []) ~f:(fun pat acc ->
+        let* acc = acc in
+        let* arg = unpack pat in
+        return (arg :: acc) )
+  in
+
   let rec f = function
     | Expr.Id id ->
         return (Id id)
     | Const const ->
         return (Const const)
     | Fun (pats, expr) ->
-        let* args =
-          List.fold_right (List1.to_list pats) ~init:(return [])
-            ~f:(fun pat acc ->
-              let* acc = acc in
-              let* arg = unpack pat in
-              return (arg :: acc) )
-        in
-
+        let* args = unpack_many (List1.to_list pats) in
         let* sim = f expr in
         return (Fun (Nonrec, List1.of_list_exn args, sim))
     | Apply (expr1, exp2) ->
@@ -85,6 +86,25 @@ let from_expr : Expr.t -> (t, err) Result.t =
             let* id = unpack pat in
             let* rhs = f rhs in
             return (Apply (Fun (Nonrec, List1.of_list_exn [id], acc), rhs)) )
+    | Let (Rec, ({pat; expr= rhs}, []), expr) ->
+        let* id = match pat with Var id -> return id | _ -> fail TypeError in
+        let* pats, ebody =
+          match rhs with
+          | Fun (pats, expr) ->
+              return (pats, expr)
+          | _ ->
+              fail TypeError
+        in
+
+        let* args = unpack_many (List1.to_list pats) >>| List1.of_list_exn in
+        let* body = f ebody in
+        let* sim = f expr in
+        return
+          (Apply
+             ( Fun (Nonrec, List1.of_list_exn [id], sim)
+             , Fun (Rec id, args, body) ) )
+    | Let (Rec, _, _) ->
+        fail (NotImplemented "mutually recursive bindings")
     | Seq exprs ->
         let* sims =
           List.fold_right (List2.to_list exprs) ~init:(return [])
@@ -104,8 +124,6 @@ let from_expr : Expr.t -> (t, err) Result.t =
         f expr
     | Construct (I "()", _) ->
         return Unit
-    | Let (Rec, _, _) ->
-        fail (NotImplemented "recursive bindings")
     | Tuple _ ->
         fail (NotImplemented "tuples")
     | Function _ | Match _ ->
