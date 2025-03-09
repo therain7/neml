@@ -86,6 +86,10 @@ let%expect_test _ =
   [%expect {| (fun x y -> (+) x y; ()) 1 2 |}]
 
 let%expect_test _ =
+  run `SimplOpt {| let x = 1 + 2 and y = 3 and z = 4 in x - z + y |} ;
+  [%expect {| (fun z y x -> (+) ((-) x z) y) 4 ((+) 1 2) 3; () |}]
+
+let%expect_test _ =
   run `Simpl
     {| let f x y = x + y;;
        f 1 1;;
@@ -101,10 +105,11 @@ let%expect_test _ =
     |}]
 
 let%expect_test _ =
-  run `CLess {|(fun x -> fun y -> x - 1 + y) 1 2 |} ;
-  [%expect {|
-    let f0 = fun x y -> (+) ((-) x 1) y;;
-    f0 1 2; ()
+  run `CLess {|(fun x -> fun y -> fun z -> x - 1 + y + z) 1 2 3 |} ;
+  [%expect
+    {|
+    let f0 = fun x y z -> (+) ((+) ((-) x 1) y) z;;
+    f0 1 2 3; ()
     |}]
 
 let%expect_test _ =
@@ -121,15 +126,6 @@ let%expect_test _ =
     let f3 = fun x y -> f2 (f1 y) (f0 x);;
     let f4 = fun f -> ();;
     f4 f3
-    |}]
-
-let%expect_test _ =
-  run `CLess {| let x = 1 + 2 and y = 3 and z = 4 in x |} ;
-  [%expect
-    {|
-    let f0 = fun x -> x;;
-    let f1 = fun z y -> f0 ((+) 1 2);;
-    f1 4 3; ()
     |}]
 
 let%expect_test _ =
