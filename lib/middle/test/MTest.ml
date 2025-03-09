@@ -15,7 +15,7 @@ module Format = Stdlib.Format
 
 type err = ParseError | SimplError of MSimpl.err
 
-let run' (ir : [`Simpl | `CLess]) s =
+let run' (ir : [`Simpl | `SimplOpt | `CLess]) s =
   let globals = IdSet.of_list [I "+"; I "-"] in
 
   let open Result in
@@ -28,13 +28,16 @@ let run' (ir : [`Simpl | `CLess]) s =
   let* sim =
     MSimpl.from_structure structure |> map_error ~f:(fun err -> SimplError err)
   in
+  let opt = MOpt.opt sim in
 
   let print = PPrint.ToChannel.pretty 1. 50 stdout in
   ( match ir with
   | `Simpl ->
       LPrint.pp_expr (MSimpl.to_expr sim) |> print
+  | `SimplOpt ->
+      LPrint.pp_expr (MSimpl.to_expr opt) |> print
   | `CLess ->
-      let cls = MCLess.from_simpl globals sim in
+      let cls = MCLess.from_simpl globals opt in
       LPrint.pp_structure (MCLess.to_structure cls) |> print ) ;
 
   return ()
@@ -77,6 +80,10 @@ let%expect_test _ =
 let%expect_test _ =
   run `Simpl {| let x = 1;; let y = 2;; x + y|} ;
   [%expect {| (fun x -> (fun y -> (+) x y; ()) 2) 1 |}]
+
+let%expect_test _ =
+  run `SimplOpt {| let x = 1;; let y = 2;; x + y|} ;
+  [%expect {| (fun x y -> (+) x y; ()) 1 2 |}]
 
 let%expect_test _ =
   run `Simpl

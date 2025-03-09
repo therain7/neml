@@ -9,5 +9,7 @@
 open! Base
 
 module IdSet = MCommon.IdSet
+
 module MSimpl = MSimpl
+module MOpt = MOpt
 module MCLess = MCLess
