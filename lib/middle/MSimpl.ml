@@ -13,11 +13,12 @@ open LAst
 
 open MCommon
 
+type rec_flag = Nonrec | Rec of Id.t [@@deriving show {with_path= false}]
+
 type t =
   | Id of Id.t
   | Const of Const.t
-  | Fun of Id.t List1.t * t
-  | Fix of Id.t * Id.t List1.t * t
+  | Fun of rec_flag * Id.t List1.t * t
   | Apply of t * t
   | If of t * t * t
   | Seq of t List2.t
@@ -29,9 +30,9 @@ let rec to_expr : t -> Expr.t = function
       Id id
   | Const const ->
       Const const
-  | Fun (args, sim) ->
+  | Fun (Nonrec, args, sim) ->
       Fun (List1.map args ~f:(fun id -> Pat.Var id), to_expr sim)
-  | Fix (id, args, sim) ->
+  | Fun (Rec id, args, sim) ->
       let pats = List1.map (List1.cons id args) ~f:(fun id -> Pat.Var id) in
       Apply (Id id, Fun (pats, to_expr sim))
   | Apply (sim1, sim2) ->
@@ -70,7 +71,7 @@ let rec from_expr : Expr.t -> (t, err) Result.t =
             return (arg :: acc) )
       in
       let* sim = from_expr expr in
-      return (Fun (List1.of_list_exn args, sim))
+      return (Fun (Nonrec, List1.of_list_exn args, sim))
   | Apply (expr1, exp2) ->
       let* sim1 = from_expr expr1 in
       let* sim2 = from_expr exp2 in
@@ -81,7 +82,7 @@ let rec from_expr : Expr.t -> (t, err) Result.t =
         ~f:(fun acc {pat; expr= rhs} ->
           let* id = unpack pat in
           let* rhs = from_expr rhs in
-          return (Apply (Fun (List1.of_list_exn [id], acc), rhs)) )
+          return (Apply (Fun (Nonrec, List1.of_list_exn [id], acc), rhs)) )
   | Seq exprs ->
       let* sims =
         List.fold_right (List2.to_list exprs) ~init:(return [])
@@ -124,10 +125,13 @@ let from_structure (str : structure) : (t, err) Result.t =
 let rec free : t -> IdSet.t = function
   | Id id ->
       IdSet.single id
-  | Fun (args, sim) ->
-      Set.diff (free sim) (IdSet.of_list (List1.to_list args))
-  | Fix (name, args, sim) ->
-      Set.diff (free sim) (IdSet.of_list (name :: List1.to_list args))
+  | Fun (recf, args, sim) ->
+      let args = List1.to_list args in
+      let bound =
+        (match recf with Nonrec -> args | Rec id -> id :: args)
+        |> IdSet.of_list
+      in
+      Set.diff (free sim) bound
   | Apply (sim1, sim2) ->
       Set.union (free sim1) (free sim2)
   | Seq sims ->

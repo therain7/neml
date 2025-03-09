@@ -22,7 +22,7 @@ type cexpr =
   | Unit
 
 type func = Fun of Id.t List1.t * cexpr
-type def = DefFunc of Id.t * func
+type def = DefFunc of Expr.rec_flag * Id.t * func
 
 type t = def list * cexpr
 
@@ -41,7 +41,7 @@ let rec to_expr : cexpr -> Expr.t = function
       Expr.unit
 
 let to_stritem : def -> StrItem.t =
- fun (DefFunc (id, Fun (args, cexpr))) ->
+ fun (DefFunc (_, id, Fun (args, cexpr))) ->
   let efunc : Expr.t =
     Fun (List1.map args ~f:(fun id -> Pat.Var id), to_expr cexpr)
   in
@@ -52,31 +52,58 @@ let to_structure ((defs, cexpr) : t) : structure =
     ~init:[Eval (to_expr cexpr)]
     ~f:(fun def acc -> to_stritem def :: acc)
 
+let subst ~(from : Id.t) ~(to_ : Id.t) : cexpr -> cexpr =
+  let rec f = function
+    | Id id when Id.equal id from ->
+        Id to_
+    | Apply (cexp1, cexp2) ->
+        Apply (f cexp1, f cexp2)
+    | Seq cexps ->
+        Seq (List2.map cexps ~f)
+    | If (ccond, cthen, celse) ->
+        If (f ccond, f cthen, f celse)
+    | (Id _ | Const _ | Unit) as cexpr ->
+        cexpr
+  in
+  f
+
 let from_simpl (globals : IdSet.t) (sim : MSimpl.t) : t =
   let cnt = ref (-1) in
   let defs : def list ref = ref [] in
 
-  let def (f : func) : Id.t =
-    let id : Id.t =
+  let define ~(recf : MSimpl.rec_flag) ~(args : Id.t List1.t) ~cexpr : Id.t =
+    let fresh : Id.t =
       cnt := !cnt + 1 ;
       I ("f" ^ Int.to_string !cnt)
     in
-    defs := DefFunc (id, f) :: !defs ;
-    id
+
+    let (recf : Expr.rec_flag), func =
+      match recf with
+      | Nonrec ->
+          (Nonrec, Fun (args, cexpr))
+      | Rec id_rec ->
+          (Rec, Fun (args, subst ~from:id_rec ~to_:fresh cexpr))
+    in
+
+    defs := DefFunc (recf, fresh, func) :: !defs ;
+    fresh
   in
 
   let rec f : MSimpl.t -> cexpr = function
-    | Fun (args, sim) ->
+    | Fun (recf, args, sim) ->
         let args = List1.to_list args in
-        let bound = Set.union globals (IdSet.of_list args) in
+        let bound =
+          (match recf with Nonrec -> args | Rec id_rec -> id_rec :: args)
+          |> IdSet.of_list |> Set.union globals
+        in
         let free = Set.diff (MSimpl.free sim) bound |> Set.to_list in
 
         let id_func =
-          def (Fun (List.concat [free; args] |> List1.of_list_exn, f sim))
+          define ~recf
+            ~args:(List.concat [free; args] |> List1.of_list_exn)
+            ~cexpr:(f sim)
         in
         List.fold free ~init:(Id id_func) ~f:(fun acc id -> Apply (acc, Id id))
-    | Fix _ ->
-        assert false
     | Id id ->
         Id id
     | Apply (sim1, sim2) ->
