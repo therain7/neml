@@ -11,6 +11,8 @@ open! Base
 open LMisc
 open LAst
 
+open MCommon
+
 type t =
   | Id of Id.t
   | Const of Const.t
@@ -118,3 +120,20 @@ let from_structure (str : structure) : (t, err) Result.t =
       | Eval expr ->
           Seq (List2.of_list_exn [expr; acc]) )
   |> from_expr
+
+let rec free : t -> IdSet.t = function
+  | Id id ->
+      IdSet.single id
+  | Fun (args, sim) ->
+      Set.diff (free sim) (IdSet.of_list (List1.to_list args))
+  | Fix (name, args, sim) ->
+      Set.diff (free sim) (IdSet.of_list (name :: List1.to_list args))
+  | Apply (sim1, sim2) ->
+      Set.union (free sim1) (free sim2)
+  | Seq sims ->
+      List.fold (List2.to_list sims) ~init:IdSet.empty ~f:(fun acc sim ->
+          Set.union acc (free sim) )
+  | If (scond, sthen, selse) ->
+      Set.union_list (module Id) [free scond; free sthen; free selse]
+  | Const _ | Unit ->
+      IdSet.empty
