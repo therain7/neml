@@ -8,7 +8,6 @@
 
 open! Base
 
-open LMisc
-open LAst
-
+module IdSet = MCommon.IdSet
 module MSimpl = MSimpl
+module MCLess = MCLess
