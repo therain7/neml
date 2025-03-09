@@ -42,7 +42,7 @@ module Simpl = struct
     | Unit ->
         Construct (I "()", None)
 
-  type err = NotImplemented of string
+  type err = NotImplemented of string [@@deriving show {with_path= false}]
 
   let rec from_expr : Expr.t -> (t, err) Result.t =
     let open Result in
