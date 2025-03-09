@@ -75,6 +75,10 @@ let%expect_test _ =
     |}]
 
 let%expect_test _ =
+  run `Simpl {| let x = 1;; let y = 2;; x + y|} ;
+  [%expect {| (fun x -> (fun y -> (+) x y; ()) 2) 1 |}]
+
+let%expect_test _ =
   run `Simpl
     {| let f x y = x + y;;
        f 1 1;;
@@ -104,13 +108,12 @@ let%expect_test _ =
        x 1 + y 2 |} ;
   [%expect
     {|
-    let f0 = fun y z -> (+) y z;;
-    let f1 = fun x z -> (+) (x 1) z;;
+    let f0 = fun x z -> (+) (x 1) z;;
+    let f1 = fun y z -> (+) y z;;
     let f2 = fun x y -> (+) (x 1) (y 2);;
-    let f3 = fun x -> f2 x (f1 x);;
-    let f4 = fun x y -> f3 (f0 y);;
-    let f5 = fun f -> ();;
-    f5 f4
+    let f3 = fun x y -> f2 (f1 y) (f0 x);;
+    let f4 = fun f -> ();;
+    f4 f3
     |}]
 
 let%expect_test _ =
@@ -118,16 +121,13 @@ let%expect_test _ =
   [%expect
     {|
     let f0 = fun x -> x;;
-    let f1 = fun y -> f0 ((+) 1 2);;
-    let f2 = fun z -> f1 3;;
-    f2 4; ()
+    let f1 = fun z y -> f0 ((+) 1 2);;
+    f1 4 3; ()
     |}]
 
 let%expect_test _ =
   run `CLess {| let x = 1;; let y = 2;; x + y|} ;
-  [%expect
-    {|
+  [%expect {|
     let f0 = fun x y -> (+) x y; ();;
-    let f1 = fun x -> f0 x 2;;
-    f1 1
+    f0 1 2
     |}]
