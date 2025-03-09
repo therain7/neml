@@ -18,12 +18,12 @@ let run s =
   | None ->
       print_endline "syntax error"
   | Some str -> (
-    match Simpl.from_structure str with
+    match MSimpl.from_structure str with
     | Error err ->
-        Simpl.pp_err Format.std_formatter err
+        MSimpl.pp_err Format.std_formatter err
     | Ok sim ->
         PPrint.ToChannel.pretty 1. 40 stdout
-          (LPrint.pp_expr (Simpl.to_expr sim)) )
+          (LPrint.pp_expr (MSimpl.to_expr sim)) )
 
 let%expect_test _ = run {| let a = 1 |} ; [%expect {| (fun a -> ()) 1 |}]
 
