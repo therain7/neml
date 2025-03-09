@@ -267,7 +267,6 @@ let%expect_test _ = run {| 1a |} ; [%expect {| syntax error |}]
 
 let%expect_test _ = run {| 1 ;; a |} ; [%expect {|
     1;;
-
     a
     |}]
 
