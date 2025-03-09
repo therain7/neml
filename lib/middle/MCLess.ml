@@ -68,6 +68,27 @@ let subst ~(from : Id.t) ~(to_ : Id.t) : cexpr -> cexpr =
   f
 
 let from_simpl (globals : IdSet.t) (sim : MSimpl.t) : t =
+  let group_funs =
+    let rec f : MSimpl.t -> MSimpl.t = function
+      | Fun (Nonrec, args0, Fun (Nonrec, args1, sim)) ->
+          let args0 = List1.to_list args0 in
+          let args1 = List1.to_list args1 in
+          Fun (Nonrec, List.concat [args0; args1] |> List1.of_list_exn, f sim)
+      | Fun (recf, args, sim) ->
+          Fun (recf, args, f sim)
+      | (Id _ | Const _ | Unit) as sim ->
+          sim
+      | Apply (sim1, sim2) ->
+          Apply (f sim1, f sim2)
+      | If (scond, sthen, selse) ->
+          If (f scond, f sthen, f selse)
+      | Seq sims ->
+          Seq (List2.map sims ~f)
+    in
+    f
+  in
+  let sim = group_funs sim in
+
   let cnt = ref (-1) in
   let defs : def list ref = ref [] in
 

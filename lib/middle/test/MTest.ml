@@ -16,7 +16,7 @@ module Format = Stdlib.Format
 type err = ParseError | SimplError of MSimpl.err
 
 let run' (ir : [`Simpl | `CLess]) s =
-  let globals = IdSet.of_list [I "+"] in
+  let globals = IdSet.of_list [I "+"; I "-"] in
 
   let open Result in
   let ( let* ) = ( >>= ) in
@@ -87,6 +87,13 @@ let%expect_test _ =
        f 1 1;
        (fun f -> f 2 2; ()) (fun x y -> (-) x y)
     ) (fun x y -> (+) x y)
+    |}]
+
+let%expect_test _ =
+  run `CLess {|(fun x -> fun y -> x - 1 + y) 1 2 |} ;
+  [%expect {|
+    let f0 = fun x y -> (+) ((-) x 1) y;;
+    f0 1 2; ()
     |}]
 
 let%expect_test _ =

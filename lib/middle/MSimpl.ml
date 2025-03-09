@@ -46,7 +46,7 @@ let rec to_expr : t -> Expr.t = function
 
 type err = NotImplemented of string [@@deriving show {with_path= false}]
 
-let rec from_expr : Expr.t -> (t, err) Result.t =
+let from_expr : Expr.t -> (t, err) Result.t =
   let open Result in
   let ( let* ) = ( >>= ) in
 
@@ -57,58 +57,62 @@ let rec from_expr : Expr.t -> (t, err) Result.t =
         fail (NotImplemented "patterns")
   in
 
-  function
-  | Id id ->
-      return (Id id)
-  | Const const ->
-      return (Const const)
-  | Fun (pats, expr) ->
-      let* args =
-        List.fold_right (List1.to_list pats) ~init:(return [])
-          ~f:(fun pat acc ->
-            let* acc = acc in
-            let* arg = unpack pat in
-            return (arg :: acc) )
-      in
-      let* sim = from_expr expr in
-      return (Fun (Nonrec, List1.of_list_exn args, sim))
-  | Apply (expr1, exp2) ->
-      let* sim1 = from_expr expr1 in
-      let* sim2 = from_expr exp2 in
-      return (Apply (sim1, sim2))
-  | Let (Nonrec, bindings, expr) ->
-      let* sim = from_expr expr in
-      List.fold_result (List1.to_list bindings) ~init:sim
-        ~f:(fun acc {pat; expr= rhs} ->
-          let* id = unpack pat in
-          let* rhs = from_expr rhs in
-          return (Apply (Fun (Nonrec, List1.of_list_exn [id], acc), rhs)) )
-  | Seq exprs ->
-      let* sims =
-        List.fold_right (List2.to_list exprs) ~init:(return [])
-          ~f:(fun expr acc ->
-            let* acc = acc in
-            let* expr = from_expr expr in
-            return (expr :: acc) )
-      in
-      return (Seq (List2.of_list_exn sims))
-  | If (econd, ethen, eelse) ->
-      let* scond = from_expr econd in
-      let* sthen = from_expr ethen in
-      let* selse = Option.value_map eelse ~default:(return Unit) ~f:from_expr in
-      return (If (scond, sthen, selse))
-  | Constraint (expr, _) ->
-      from_expr expr
-  | Construct (I "()", _) ->
-      return Unit
-  | Let (Rec, _, _) ->
-      fail (NotImplemented "recursive bindings")
-  | Tuple _ ->
-      fail (NotImplemented "tuples")
-  | Function _ | Match _ ->
-      fail (NotImplemented "pattern matching")
-  | Construct _ ->
-      fail (NotImplemented "constructors")
+  let rec f = function
+    | Expr.Id id ->
+        return (Id id)
+    | Const const ->
+        return (Const const)
+    | Fun (pats, expr) ->
+        let* args =
+          List.fold_right (List1.to_list pats) ~init:(return [])
+            ~f:(fun pat acc ->
+              let* acc = acc in
+              let* arg = unpack pat in
+              return (arg :: acc) )
+        in
+
+        let* sim = f expr in
+        return (Fun (Nonrec, List1.of_list_exn args, sim))
+    | Apply (expr1, exp2) ->
+        let* sim1 = f expr1 in
+        let* sim2 = f exp2 in
+        return (Apply (sim1, sim2))
+    | Let (Nonrec, bindings, expr) ->
+        let* sim = f expr in
+        List.fold_result (List1.to_list bindings) ~init:sim
+          ~f:(fun acc {pat; expr= rhs} ->
+            let* id = unpack pat in
+            let* rhs = f rhs in
+            return (Apply (Fun (Nonrec, List1.of_list_exn [id], acc), rhs)) )
+    | Seq exprs ->
+        let* sims =
+          List.fold_right (List2.to_list exprs) ~init:(return [])
+            ~f:(fun expr acc ->
+              let* acc = acc in
+              let* expr = f expr in
+              return (expr :: acc) )
+        in
+
+        return (Seq (List2.of_list_exn sims))
+    | If (econd, ethen, eelse) ->
+        let* scond = f econd in
+        let* sthen = f ethen in
+        let* selse = Option.value_map eelse ~default:(return Unit) ~f in
+        return (If (scond, sthen, selse))
+    | Constraint (expr, _) ->
+        f expr
+    | Construct (I "()", _) ->
+        return Unit
+    | Let (Rec, _, _) ->
+        fail (NotImplemented "recursive bindings")
+    | Tuple _ ->
+        fail (NotImplemented "tuples")
+    | Function _ | Match _ ->
+        fail (NotImplemented "pattern matching")
+    | Construct _ ->
+        fail (NotImplemented "constructors")
+  in
+  f
 
 let from_structure (str : structure) : (t, err) Result.t =
   List.fold_right str ~init:Expr.unit
