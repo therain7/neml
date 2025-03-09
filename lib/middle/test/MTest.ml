@@ -117,15 +117,16 @@ let%expect_test _ =
     {| let f x y =
        let x z = y + z in
        let y z = x 1 + z in
-       x 1 + y 2 |} ;
+        x 1 + y 2;; f 5 10 |} ;
   [%expect
     {|
-    let f0 = fun x z -> (+) (x 1) z;;
-    let f1 = fun y z -> (+) y z;;
+    let f0 = fun y z -> (+) y z;;
+    let f1 = fun x z -> (+) (x 1) z;;
     let f2 = fun x y -> (+) (x 1) (y 2);;
-    let f3 = fun x y -> f2 (f1 y) (f0 x);;
-    let f4 = fun f -> ();;
-    f4 f3
+    let f3 = fun x -> f2 x (f1 x);;
+    let f4 = fun x y -> f3 (f0 y);;
+    let f5 = fun f -> f 5 10; ();;
+    f5 f4
     |}]
 
 let%expect_test _ =
