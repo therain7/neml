@@ -1,0 +1,8 @@
+(library
+ (name LMiddle)
+ (public_name neml.Middle)
+ (libraries base LMisc LAst)
+ (preprocess
+  (pps ppx_deriving.show))
+ (instrumentation
+  (backend bisect_ppx)))

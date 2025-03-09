@@ -32,6 +32,8 @@ module List1 = struct
   let to_list : 'a t -> 'a list = fun (hd, tl) -> hd :: tl
 
   let map ((hd, tl) : 'a t) ~(f : 'a -> 'b) : 'b t = (f hd, List.map tl ~f)
+
+  let cons (hd : 'a) ((fst, snd) : 'a t) : 'a t = (hd, fst :: snd)
 end
 
 (** List containing at least 2 elements *)
