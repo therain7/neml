@@ -141,8 +141,12 @@ let from_structure (str : structure) : (t, err) Result.t =
           acc
       | Let (recf, bindings) ->
           Let (recf, bindings, acc)
-      | Eval expr ->
-          Seq (List2.of_list_exn [expr; acc]) )
+      | Eval expr -> (
+        match acc with
+        | Construct (I "()", None) ->
+            expr
+        | _ ->
+            Seq (List2.of_list_exn [expr; acc]) ) )
   |> from_expr
 
 let rec free : t -> IdSet.t = function
