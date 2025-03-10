@@ -16,7 +16,10 @@ module Format = Stdlib.Format
 type err = ParseError | SimplError of MSimpl.err
 
 let run' (ir : [`Simpl | `SimplOpt | `CLess | `Anf]) s =
-  let globals = IdSet.of_list [I "+"; I "-"; I "*"; I "<"; I "print_int"] in
+  let globals =
+    IdSet.of_list
+      [I "+"; I "-"; I "*"; I "/"; I "<"; I "<="; I "="; I "print_int"]
+  in
 
   let open Result in
   let ( let* ) = ( >>= ) in
