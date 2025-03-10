@@ -21,7 +21,7 @@ type cexpr =
   | Seq of cexpr List2.t
   | Unit
 
-type func = Fun of Id.t List1.t * cexpr
+type func = {args: Id.t List1.t; body: cexpr}
 type def = DefFunc of Expr.rec_flag * Id.t * func
 
 type t = def list * cexpr
@@ -41,9 +41,9 @@ let rec to_expr : cexpr -> Expr.t = function
       Expr.unit
 
 let to_stritem : def -> StrItem.t =
- fun (DefFunc (recf, id, Fun (args, cexpr))) ->
+ fun (DefFunc (recf, id, {args; body})) ->
   let efunc : Expr.t =
-    Fun (List1.map args ~f:(fun id -> Pat.Var id), to_expr cexpr)
+    Fun (List1.map args ~f:(fun id -> Pat.Var id), to_expr body)
   in
   Let (recf, List1.of_list_exn [Expr.{pat= Pat.Var id; expr= efunc}])
 
@@ -72,7 +72,7 @@ let from_simpl (globals : IdSet.t) (sim : MSimpl.t) : t =
   let cnt = ref (-1) in
   let defs : def list ref = ref [] in
 
-  let define ~(recf : MSimpl.rec_flag) ~(args : Id.t List1.t) ~cexpr : Id.t =
+  let define ~(recf : MSimpl.rec_flag) ~(args : Id.t List1.t) ~body : Id.t =
     let fresh : Id.t =
       cnt := !cnt + 1 ;
       I ("f" ^ Int.to_string !cnt)
@@ -81,9 +81,9 @@ let from_simpl (globals : IdSet.t) (sim : MSimpl.t) : t =
     let (recf : Expr.rec_flag), func =
       match recf with
       | Nonrec ->
-          (Nonrec, Fun (args, cexpr))
+          (Nonrec, {args; body})
       | Rec id_rec ->
-          (Rec, Fun (args, subst ~from:id_rec ~to_:fresh cexpr))
+          (Rec, {args; body= subst ~from:id_rec ~to_:fresh body})
     in
 
     defs := DefFunc (recf, fresh, func) :: !defs ;
@@ -102,7 +102,7 @@ let from_simpl (globals : IdSet.t) (sim : MSimpl.t) : t =
         let id_func =
           define ~recf
             ~args:(List.concat [free; args] |> List1.of_list_exn)
-            ~cexpr:(f sim)
+            ~body:(f sim)
         in
         List.fold free ~init:(Id id_func) ~f:(fun acc id -> Apply (acc, Id id))
     | Id id ->
