@@ -41,11 +41,11 @@ let rec to_expr : cexpr -> Expr.t = function
       Expr.unit
 
 let to_stritem : def -> StrItem.t =
- fun (DefFunc (_, id, Fun (args, cexpr))) ->
+ fun (DefFunc (recf, id, Fun (args, cexpr))) ->
   let efunc : Expr.t =
     Fun (List1.map args ~f:(fun id -> Pat.Var id), to_expr cexpr)
   in
-  Let (Nonrec, List1.of_list_exn [Expr.{pat= Pat.Var id; expr= efunc}])
+  Let (recf, List1.of_list_exn [Expr.{pat= Pat.Var id; expr= efunc}])
 
 let to_structure ((defs, cexpr) : t) : structure =
   List.fold_right defs
