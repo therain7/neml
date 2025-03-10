@@ -21,7 +21,6 @@ type cl =
   | Apply of cl * cl
   | If of cl * cl * cl
   | Seq of cl List2.t
-  | Unit
 
 type def = cl FuncDef.t
 type t = def list * cl
@@ -30,15 +29,13 @@ let rec to_expr : cl -> Expr.t = function
   | Id id ->
       Id id
   | Const const ->
-      Const const
+      Const.to_expr const
   | Apply (cl1, cl2) ->
       Apply (to_expr cl1, to_expr cl2)
   | If (ccond, cthen, celse) ->
       If (to_expr ccond, to_expr cthen, Some (to_expr celse))
   | Seq cls ->
       Seq (List2.map cls ~f:to_expr)
-  | Unit ->
-      Expr.unit
 
 let to_structure ((defs, cl) : t) : structure =
   List.fold_right defs
@@ -55,7 +52,7 @@ let subst ~(from : Id.t) ~(to_ : Id.t) : cl -> cl =
         Seq (List2.map cls ~f)
     | If (ccond, cthen, celse) ->
         If (f ccond, f cthen, f celse)
-    | (Id _ | Const _ | Unit) as cl ->
+    | (Id _ | Const _) as cl ->
         cl
   in
   f
@@ -115,8 +112,6 @@ let from_simpl (globals : IdSet.t) (sim : MSimpl.t) : t =
         Seq (List2.map sims ~f)
     | Const const ->
         Const const
-    | Unit ->
-        Unit
   in
 
   let cl = f sim in

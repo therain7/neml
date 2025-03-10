@@ -39,7 +39,7 @@ let group_funs =
         Fun (recf, args, f sim)
     | Apply (sim1, sim2) ->
         Apply (f sim1, f sim2)
-    | (Id _ | Const _ | Unit) as sim ->
+    | (Id _ | Const _) as sim ->
         sim
     | If (scond, sthen, selse) ->
         If (f scond, f sthen, f selse)
