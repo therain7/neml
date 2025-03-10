@@ -31,3 +31,28 @@ module FuncDef = struct
     in
     Let (recf, List1.of_list_exn [Expr.{pat= Pat.Var id; expr= efunc}])
 end
+
+module Const = struct
+  type t = Int of int | Char of char | String of string | Bool of bool | Unit
+  [@@deriving show {with_path= false}]
+
+  let to_expr : t -> Expr.t = function
+    | Int i ->
+        Const (Int i)
+    | Char c ->
+        Const (Char c)
+    | String s ->
+        Const (String s)
+    | Bool b ->
+        Construct (I (if b then "true" else "false"), None)
+    | Unit ->
+        Expr.unit
+
+  let from_const : LAst.Const.t -> t = function
+    | Int i ->
+        Int i
+    | Char c ->
+        Char c
+    | String s ->
+        String s
+end

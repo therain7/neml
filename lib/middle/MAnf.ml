@@ -15,7 +15,7 @@ open MCommon
 
 (** ANF IR *)
 
-type imm = Id of Id.t | Const of Const.t | Unit
+type imm = Id of Id.t | Const of Const.t
 type cmplx = Imm of imm | Apply of imm * imm List1.t
 type anf =
   | Let of Id.t * cmplx * anf
@@ -30,9 +30,7 @@ let imm_to_expr : imm -> Expr.t = function
   | Id id ->
       Id id
   | Const const ->
-      Const const
-  | Unit ->
-      Expr.unit
+      Const.to_expr const
 
 let cmplx_to_expr : cmplx -> Expr.t = function
   | Imm imm ->
@@ -82,8 +80,6 @@ let from_cl (cl : MCLess.cl) : anf =
         k (Id id)
     | Const const ->
         k (Const const)
-    | Unit ->
-        k Unit
     | Apply (cfun, carg) ->
         let cfun, cargs = group_apps cfun in
         let* ifun = f cfun in

@@ -24,13 +24,12 @@ type t =
   | Apply of t * t
   | If of t * t * t
   | Seq of t List2.t
-  | Unit
 
 let rec to_expr : t -> Expr.t = function
   | Id id ->
       Id id
   | Const const ->
-      Const const
+      Const.to_expr const
   | Fun (Nonrec, args, sim) ->
       Fun (List1.map args ~f:(fun id -> Pat.Var id), to_expr sim)
   | Fun (Rec id, args, sim) ->
@@ -42,8 +41,6 @@ let rec to_expr : t -> Expr.t = function
       If (to_expr scond, to_expr sthen, Some (to_expr selse))
   | Seq sims ->
       Seq (List2.map sims ~f:to_expr)
-  | Unit ->
-      Expr.unit
 
 type err = TypeError | NotImplemented of string
 [@@deriving show {with_path= false}]
@@ -70,7 +67,13 @@ let from_expr : Expr.t -> (t, err) Result.t =
     | Expr.Id id ->
         return (Id id)
     | Const const ->
-        return (Const const)
+        return (Const (Const.from_const const))
+    | Construct (I "()", _) ->
+        return (Const Unit)
+    | Construct (I "true", _) ->
+        return (Const (Bool true))
+    | Construct (I "false", _) ->
+        return (Const (Bool false))
     | Fun (pats, expr) ->
         let* args = unpack_many (List1.to_list pats) in
         let* sim = f expr in
@@ -118,12 +121,10 @@ let from_expr : Expr.t -> (t, err) Result.t =
     | If (econd, ethen, eelse) ->
         let* scond = f econd in
         let* sthen = f ethen in
-        let* selse = Option.value_map eelse ~default:(return Unit) ~f in
+        let* selse = Option.value_map eelse ~default:(return (Const Unit)) ~f in
         return (If (scond, sthen, selse))
     | Constraint (expr, _) ->
         f expr
-    | Construct (I "()", _) ->
-        return Unit
     | Tuple _ ->
         fail (NotImplemented "tuples")
     | Function _ | Match _ ->
@@ -167,5 +168,5 @@ let rec free : t -> IdSet.t = function
           Set.union acc (free sim) )
   | If (scond, sthen, selse) ->
       Set.union_list (module Id) [free scond; free sthen; free selse]
-  | Const _ | Unit ->
+  | Const _ ->
       IdSet.empty
