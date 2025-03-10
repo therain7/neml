@@ -110,8 +110,8 @@ let%expect_test _ =
   run `CLess {|(fun x -> fun y -> fun z -> x - 1 + y + z) 1 2 3 |} ;
   [%expect
     {|
-    let f0 = fun x y z -> (+) ((+) ((-) x 1) y) z;;
-    f0 1 2 3
+    let F0 = fun x y z -> (+) ((+) ((-) x 1) y) z;;
+    F0 1 2 3
     |}]
 
 let%expect_test _ =
@@ -122,20 +122,20 @@ let%expect_test _ =
         x 1 + y 2;; f 5 10 |} ;
   [%expect
     {|
-    let f0 = fun y z -> (+) y z;;
-    let f1 = fun x z -> (+) (x 1) z;;
-    let f2 = fun x y -> (+) (x 1) (y 2);;
-    let f3 = fun x -> f2 x (f1 x);;
-    let f4 = fun x y -> f3 (f0 y);;
-    let f5 = fun f -> f 5 10;;
-    f5 f4
+    let F0 = fun y z -> (+) y z;;
+    let F1 = fun x z -> (+) (x 1) z;;
+    let F2 = fun x y -> (+) (x 1) (y 2);;
+    let F3 = fun x -> F2 x (F1 x);;
+    let F4 = fun x y -> F3 (F0 y);;
+    let F5 = fun f -> f 5 10;;
+    F5 F4
     |}]
 
 let%expect_test _ =
   run `CLess {| let x = 1;; let y = 2;; x + y|} ;
   [%expect {|
-    let f0 = fun x y -> (+) x y;;
-    f0 1 2
+    let F0 = fun x y -> (+) x y;;
+    F0 1 2
     |}]
 
 let%expect_test _ =
@@ -143,30 +143,45 @@ let%expect_test _ =
     {| let rec fact n = if n < 2 then 1 else n * fact (n-1) in fact 5 |} ;
   [%expect
     {|
-    let rec f0 =
+    let rec F0 =
       fun n ->
-        if (<) n 2 then 1 else (*) n (f0 ((-) n 1));;
-    let f1 = fun fact -> fact 5;;
-    f1 f0
+        if (<) n 2 then 1 else (*) n (F0 ((-) n 1));;
+    let F1 = fun fact -> fact 5;;
+    F1 F0
     |}]
 
 let%expect_test _ =
   run `Anf {|let a = 1|} ;
   [%expect {|
-    let f0 = fun a -> ();;
-    let __v0 = f0 1 in __v0
+    let F0 = fun a -> ();;
+    F0 1
     |}]
 
 let%expect_test _ =
   run `Anf {|let f x =  x + x - 10 in f 5|} ;
   [%expect
     {|
-    let f0 =
-      fun x ->
-        let __v0 = (+) x in
-        let __v1 = __v0 x in
-        let __v2 = (-) __v1 in
-        let __v3 = __v2 10 in __v3;;
-    let f1 = fun f -> let __v0 = f 5 in __v0;;
-    let __v0 = f1 f0 in __v0
+    let F0 = fun x -> let V0 = (+) x x in (-) V0 10;;
+    let F1 = fun f -> f 5;;
+    F1 F0
+    |}]
+
+let%expect_test _ =
+  run `Anf {| f x y z d (e + 2) |} ;
+  [%expect {| let V0 = (+) e 2 in f x y z d V0 |}]
+
+let%expect_test _ =
+  run `Anf {| let rec fact n = if n < 2 then 1 else n * fact (n-1) in fact 5 |} ;
+  [%expect
+    {|
+    let rec F0 =
+      fun n ->
+        let V0 = (<) n 2 in
+        if V0
+        then 1
+        else
+          let V1 = (-) n 1 in
+          let V2 = F0 V1 in (*) n V2;;
+    let F1 = fun fact -> fact 5;;
+    F1 F0
     |}]

@@ -66,11 +66,12 @@ let from_simpl (globals : IdSet.t) (sim : MSimpl.t) : t =
   let cnt = ref (-1) in
   let defs : def list ref = ref [] in
 
+  (* lifts lambda to the top level with the new generated name *)
   let define ~(recf : MSimpl.rec_flag) ~(args : Id.t List1.t) ~(body : cl) :
       Id.t =
     let fresh : Id.t =
       cnt := !cnt + 1 ;
-      I ("f" ^ Int.to_string !cnt)
+      I ("F" ^ Int.to_string !cnt)
     in
 
     let def : def =
