@@ -10,6 +10,11 @@ open! Base
 
 module IdSet = MCommon.IdSet
 
+(**
+  Middleend IRs.
+  LAst.Expr.t -> MSimpl.t --MOpt.opt--> MSimpl.t -> MCless.t -> MAnf.t
+*)
+
 module MSimpl = MSimpl
 module MOpt = MOpt
 module MCLess = MCLess

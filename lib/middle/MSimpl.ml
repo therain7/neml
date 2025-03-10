@@ -15,7 +15,7 @@ open MCommon
 
 (** Simpl IR *)
 
-type rec_flag = Nonrec | Rec of Id.t [@@deriving show {with_path= false}]
+type rec_flag = Nonrec | Rec of Id.t
 
 type t =
   | Id of Id.t
@@ -25,7 +25,6 @@ type t =
   | If of t * t * t
   | Seq of t List2.t
   | Unit
-[@@deriving show {with_path= false}]
 
 let rec to_expr : t -> Expr.t = function
   | Id id ->
@@ -49,7 +48,6 @@ let rec to_expr : t -> Expr.t = function
 type err = TypeError | NotImplemented of string
 [@@deriving show {with_path= false}]
 
-(** Converts AST to Simpl IR expression *)
 let from_expr : Expr.t -> (t, err) Result.t =
   let open Result in
   let ( let* ) = ( >>= ) in
@@ -135,6 +133,7 @@ let from_expr : Expr.t -> (t, err) Result.t =
   in
   f
 
+(** Converts AST structure to Simpl IR *)
 let from_structure (str : structure) : (t, err) Result.t =
   List.fold_right str ~init:Expr.unit
     ~f:(fun (item : StrItem.t) (acc : Expr.t) : Expr.t ->
