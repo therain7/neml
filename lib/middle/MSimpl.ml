@@ -44,7 +44,7 @@ let rec to_expr : t -> Expr.t = function
   | Seq sims ->
       Seq (List2.map sims ~f:to_expr)
   | Unit ->
-      Construct (I "()", None)
+      Expr.unit
 
 type err = TypeError | NotImplemented of string
 [@@deriving show {with_path= false}]

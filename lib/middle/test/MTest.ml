@@ -15,7 +15,7 @@ module Format = Stdlib.Format
 
 type err = ParseError | SimplError of MSimpl.err
 
-let run' (ir : [`Simpl | `SimplOpt | `CLess]) s =
+let run' (ir : [`Simpl | `SimplOpt | `CLess | `Anf]) s =
   let globals = IdSet.of_list [I "+"; I "-"; I "*"; I "<"] in
 
   let open Result in
@@ -29,6 +29,7 @@ let run' (ir : [`Simpl | `SimplOpt | `CLess]) s =
     MSimpl.from_structure structure |> map_error ~f:(fun err -> SimplError err)
   in
   let opt = MOpt.opt sim in
+  let cls = MCLess.from_simpl globals opt in
 
   let print = PPrint.ToChannel.pretty 1. 50 stdout in
   ( match ir with
@@ -37,8 +38,10 @@ let run' (ir : [`Simpl | `SimplOpt | `CLess]) s =
   | `SimplOpt ->
       LPrint.pp_expr (MSimpl.to_expr opt) |> print
   | `CLess ->
-      let cls = MCLess.from_simpl globals opt in
-      LPrint.pp_structure (MCLess.to_structure cls) |> print ) ;
+      LPrint.pp_structure (MCLess.to_structure cls) |> print
+  | `Anf ->
+      let anf = MAnf.from_cless cls in
+      LPrint.pp_structure (MAnf.to_structure anf) |> print ) ;
 
   return ()
 
@@ -145,4 +148,25 @@ let%expect_test _ =
         if (<) n 2 then 1 else (*) n (f0 ((-) n 1));;
     let f1 = fun fact -> fact 5;;
     f1 f0
+    |}]
+
+let%expect_test _ =
+  run `Anf {|let a = 1|} ;
+  [%expect {|
+    let f0 = fun a -> ();;
+    let __v0 = f0 1 in __v0
+    |}]
+
+let%expect_test _ =
+  run `Anf {|let f x =  x + x - 10 in f 5|} ;
+  [%expect
+    {|
+    let f0 =
+      fun x ->
+        let __v0 = (+) x in
+        let __v1 = __v0 x in
+        let __v2 = (-) __v1 in
+        let __v3 = __v2 10 in __v3;;
+    let f1 = fun f -> let __v0 = f 5 in __v0;;
+    let __v0 = f1 f0 in __v0
     |}]
