@@ -13,84 +13,83 @@ open LAst
 
 open MCommon
 
-type cexpr =
+(** C(losure)Less IR *)
+
+type cl =
   | Id of Id.t
   | Const of Const.t
-  | Apply of cexpr * cexpr
-  | If of cexpr * cexpr * cexpr
-  | Seq of cexpr List2.t
+  | Apply of cl * cl
+  | If of cl * cl * cl
+  | Seq of cl List2.t
   | Unit
 
-type func = {args: Id.t List1.t; body: cexpr}
-type def = DefFunc of Expr.rec_flag * Id.t * func
+type def = cl FuncDef.t
+type t = def list * cl
 
-type t = def list * cexpr
-
-let rec to_expr : cexpr -> Expr.t = function
+let rec to_expr : cl -> Expr.t = function
   | Id id ->
       Id id
   | Const const ->
       Const const
-  | Apply (c1, c2) ->
-      Apply (to_expr c1, to_expr c2)
+  | Apply (cl1, cl2) ->
+      Apply (to_expr cl1, to_expr cl2)
   | If (ccond, cthen, celse) ->
       If (to_expr ccond, to_expr cthen, Some (to_expr celse))
-  | Seq cexprs ->
-      Seq (List2.map cexprs ~f:to_expr)
+  | Seq cls ->
+      Seq (List2.map cls ~f:to_expr)
   | Unit ->
       Expr.unit
 
-let to_stritem : def -> StrItem.t =
- fun (DefFunc (recf, id, {args; body})) ->
-  let efunc : Expr.t =
-    Fun (List1.map args ~f:(fun id -> Pat.Var id), to_expr body)
-  in
-  Let (recf, List1.of_list_exn [Expr.{pat= Pat.Var id; expr= efunc}])
-
-let to_structure ((defs, cexpr) : t) : structure =
+let to_structure ((defs, cl) : t) : structure =
   List.fold_right defs
-    ~init:[Eval (to_expr cexpr)]
-    ~f:(fun def acc -> to_stritem def :: acc)
+    ~init:[Eval (to_expr cl)]
+    ~f:(fun def acc -> FuncDef.to_stritem to_expr def :: acc)
 
-let subst ~(from : Id.t) ~(to_ : Id.t) : cexpr -> cexpr =
+let subst ~(from : Id.t) ~(to_ : Id.t) : cl -> cl =
   let rec f = function
     | Id id when Id.equal id from ->
         Id to_
-    | Apply (cexp1, cexp2) ->
-        Apply (f cexp1, f cexp2)
-    | Seq cexps ->
-        Seq (List2.map cexps ~f)
+    | Apply (cl1, cl2) ->
+        Apply (f cl1, f cl2)
+    | Seq cls ->
+        Seq (List2.map cls ~f)
     | If (ccond, cthen, celse) ->
         If (f ccond, f cthen, f celse)
-    | (Id _ | Const _ | Unit) as cexpr ->
-        cexpr
+    | (Id _ | Const _ | Unit) as cl ->
+        cl
   in
   f
 
-(** Performs closure conversion and lambda lifting *)
+(** Converts Simpl to C(losure)Less IR.
+    Performs closure conversion and lambda lifting *)
 let from_simpl (globals : IdSet.t) (sim : MSimpl.t) : t =
   let cnt = ref (-1) in
   let defs : def list ref = ref [] in
 
-  let define ~(recf : MSimpl.rec_flag) ~(args : Id.t List1.t) ~body : Id.t =
+  let define ~(recf : MSimpl.rec_flag) ~(args : Id.t List1.t) ~(body : cl) :
+      Id.t =
     let fresh : Id.t =
       cnt := !cnt + 1 ;
       I ("f" ^ Int.to_string !cnt)
     in
 
-    let (recf : Expr.rec_flag), func =
+    let def : def =
       match recf with
       | Nonrec ->
-          (Nonrec, {args; body})
+          Func {recf= Nonrec; id= fresh; args; body}
       | Rec id_rec ->
-          (Rec, {args; body= subst ~from:id_rec ~to_:fresh body})
+          Func
+            { recf= Rec
+            ; id= fresh
+            ; args
+            ; body= subst ~from:id_rec ~to_:fresh body }
     in
 
-    defs := DefFunc (recf, fresh, func) :: !defs ;
+    defs := def :: !defs ;
     fresh
   in
 
-  let rec f : MSimpl.t -> cexpr = function
+  let rec f : MSimpl.t -> cl = function
     | Fun (recf, args, sim) ->
         let args = List1.to_list args in
         let bound =
@@ -119,5 +118,5 @@ let from_simpl (globals : IdSet.t) (sim : MSimpl.t) : t =
         Unit
   in
 
-  let cexpr = f sim in
-  (List.rev !defs, cexpr)
+  let cl = f sim in
+  (List.rev !defs, cl)

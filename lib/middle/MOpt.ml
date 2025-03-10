@@ -11,6 +11,8 @@ open! Base
 open LMisc
 open MCommon
 
+(** Middleend optimizations *)
+
 (** Groups chained functions *)
 let group_funs =
   let to_idset (l : Id.t List1.t) : IdSet.t =

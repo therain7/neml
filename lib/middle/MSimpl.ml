@@ -13,6 +13,8 @@ open LAst
 
 open MCommon
 
+(** Simpl IR *)
+
 type rec_flag = Nonrec | Rec of Id.t [@@deriving show {with_path= false}]
 
 type t =
