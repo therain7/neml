@@ -86,9 +86,14 @@ let from_expr : Expr.t -> (t, err) Result.t =
         let* sim = f expr in
         List.fold_result (List1.to_list bindings) ~init:sim
           ~f:(fun acc {pat; expr= rhs} ->
-            let* id = unpack pat in
             let* rhs = f rhs in
-            return (Apply (Fun (Nonrec, List1.of_list_exn [id], acc), rhs)) )
+            match pat with
+            | Var id ->
+                return (Apply (Fun (Nonrec, List1.of_list_exn [id], acc), rhs))
+            | Construct (I "()", None) ->
+                return (Seq ([rhs; acc] |> List2.of_list_exn))
+            | _ ->
+                fail (NotImplemented "patterns") )
     | Let (Rec, ({pat; expr= rhs}, []), expr) ->
         let* id = match pat with Var id -> return id | _ -> fail TypeError in
         let* pats, ebody =
