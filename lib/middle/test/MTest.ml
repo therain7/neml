@@ -140,7 +140,7 @@ let%expect_test _ =
     {| let rec fact n = if n < 2 then 1 else n * fact (n-1) in fact 5 |} ;
   [%expect
     {|
-    let f0 =
+    let rec f0 =
       fun n ->
         if (<) n 2 then 1 else (*) n (f0 ((-) n 1));;
     let f1 = fun fact -> fact 5;;
