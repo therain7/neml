@@ -16,7 +16,7 @@ open MCommon
 (** C(losure)Less IR *)
 
 type cl =
-  | Id of Id.t
+  | Id of IdTagged.t
   | Const of Const.t
   | Apply of cl * cl
   | If of cl * cl * cl
@@ -26,7 +26,7 @@ type def = cl FuncDef.t
 type t = def list * cl
 
 let rec to_expr : cl -> Expr.t = function
-  | Id id ->
+  | Id (id, _) ->
       Id id
   | Const const ->
       Const.to_expr const
@@ -42,9 +42,9 @@ let to_structure ((defs, cl) : t) : structure =
     ~init:[Eval (to_expr cl)]
     ~f:(fun def acc -> FuncDef.to_stritem to_expr def :: acc)
 
-let subst ~(from : Id.t) ~(to_ : Id.t) : cl -> cl =
+let subst ~(from : IdTagged.t) ~(to_ : IdTagged.t) : cl -> cl =
   let rec f = function
-    | Id id when Id.equal id from ->
+    | Id id when IdTagged.equal id from ->
         Id to_
     | Apply (cl1, cl2) ->
         Apply (f cl1, f cl2)
@@ -65,10 +65,10 @@ let from_simpl (globals : IdSet.t) (sim : MSimpl.t) : t =
 
   (* lifts lambda to the top level with the new generated name *)
   let define ~(recf : MSimpl.rec_flag) ~(args : Id.t List1.t) ~(body : cl) :
-      Id.t =
-    let fresh : Id.t =
+      IdTagged.t =
+    let fresh : IdTagged.t =
       cnt := !cnt + 1 ;
-      I ("F" ^ Int.to_string !cnt)
+      (I ("f" ^ Int.to_string !cnt), Gen)
     in
 
     let def : def =
@@ -80,7 +80,7 @@ let from_simpl (globals : IdSet.t) (sim : MSimpl.t) : t =
             { recf= Rec
             ; id= fresh
             ; args
-            ; body= subst ~from:id_rec ~to_:fresh body }
+            ; body= subst ~from:(id_rec, User) ~to_:fresh body }
     in
 
     defs := def :: !defs ;
@@ -101,9 +101,10 @@ let from_simpl (globals : IdSet.t) (sim : MSimpl.t) : t =
             ~args:(List.concat [free; args] |> List1.of_list_exn)
             ~body:(f sim)
         in
-        List.fold free ~init:(Id id_func) ~f:(fun acc id -> Apply (acc, Id id))
+        List.fold free ~init:(Id id_func) ~f:(fun acc id ->
+            Apply (acc, Id (id, User)) )
     | Id id ->
-        Id id
+        Id (id, User)
     | Apply (sim1, sim2) ->
         Apply (f sim1, f sim2)
     | If (scond, sthen, selse) ->
