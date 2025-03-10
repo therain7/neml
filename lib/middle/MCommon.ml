@@ -20,12 +20,17 @@ module IdSet = struct
   let of_list : Id.t list -> t = Set.of_list (module Id)
 end
 
+module IdTagged = struct
+  type tag = Gen | User [@@deriving eq]
+  type t = Id.t * tag [@@deriving eq]
+end
+
 module FuncDef = struct
   type 'a t =
-    | Func of {recf: Expr.rec_flag; id: Id.t; args: Id.t List1.t; body: 'a}
+    | Func of {recf: Expr.rec_flag; id: IdTagged.t; args: Id.t List1.t; body: 'a}
 
-  let to_stritem (to_expr : 'a -> Expr.t) (Func {recf; id; args; body} : 'a t) :
-      StrItem.t =
+  let to_stritem (to_expr : 'a -> Expr.t)
+      (Func {recf; id= id, _; args; body} : 'a t) : StrItem.t =
     let efunc : Expr.t =
       Fun (List1.map args ~f:(fun id -> Pat.Var id), to_expr body)
     in

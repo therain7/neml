@@ -15,10 +15,10 @@ open MCommon
 
 (** ANF IR *)
 
-type imm = Id of Id.t | Const of Const.t
+type imm = Id of IdTagged.t | Const of Const.t
 type cmplx = Imm of imm | Apply of imm * imm List1.t
 type anf =
-  | Let of Id.t * cmplx * anf
+  | Let of IdTagged.t * cmplx * anf
   | Cmplx of cmplx
   | If of imm * anf * anf
   | Seq of anf List2.t
@@ -27,7 +27,7 @@ type def = anf FuncDef.t
 type t = def list * anf
 
 let imm_to_expr : imm -> Expr.t = function
-  | Id id ->
+  | Id (id, _) ->
       Id id
   | Const const ->
       Const.to_expr const
@@ -40,7 +40,7 @@ let cmplx_to_expr : cmplx -> Expr.t = function
         ~f:(fun acc iarg -> Apply (acc, imm_to_expr iarg) )
 
 let rec to_expr : anf -> Expr.t = function
-  | Let (id, cmplx, anf) ->
+  | Let ((id, _), cmplx, anf) ->
       Let
         ( Nonrec
         , [Expr.{pat= Var id; expr= cmplx_to_expr cmplx}] |> List1.of_list_exn
@@ -68,9 +68,9 @@ let from_cl (cl : MCLess.cl) : anf =
   in
 
   let cnt = ref (-1) in
-  let fresh () =
+  let fresh () : IdTagged.t =
     cnt := !cnt + 1 ;
-    Id.I ("V" ^ Int.to_string !cnt)
+    (I ("v" ^ Int.to_string !cnt), Gen)
   in
 
   let ( let* ) = ( @@ ) in
@@ -91,7 +91,7 @@ let from_cl (cl : MCLess.cl) : anf =
           let fresh = fresh () in
           match k (Id fresh) with
           (* do not yield `Let`s of the kind `let x = E in x *)
-          | Cmplx (Imm (Id id)) when Id.equal fresh id ->
+          | Cmplx (Imm (Id id)) when IdTagged.equal fresh id ->
               Cmplx app
           | anf ->
               Let (fresh, app, anf)
