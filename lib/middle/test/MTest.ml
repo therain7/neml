@@ -67,7 +67,7 @@ let%expect_test _ =
     {|
     let f0 = fun x y -> ( + ) x y;;
     let f1 = fun f -> f 5;;
-    let f2 = fun b a -> f1 f0; ( + ) a b;;
+    let f2 = fun b a -> let v0 = f1 f0 in ( + ) a b;;
     f2 2 1
     |}]
 
@@ -239,4 +239,12 @@ let%expect_test _ =
           let v2 = f0 v1 in ( * ) n v2;;
     let f1 = fun fact -> fact 5;;
     f1 f0
+    |}]
+
+let%expect_test _ =
+  run `Anf {| let x = (f x; f y) in x + 1 |} ;
+  [%expect
+    {|
+    let f0 = fun x -> ( + ) x 1;;
+    let v0 = f x in let v1 = f y in f0 v1
     |}]
