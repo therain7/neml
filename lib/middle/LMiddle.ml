@@ -9,6 +9,8 @@
 open! Base
 
 module IdSet = MCommon.IdSet
+module IdTagged = MCommon.IdTagged
+module FuncDef = MCommon.FuncDef
 
 (**
   Middleend IRs.
