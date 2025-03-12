@@ -29,12 +29,12 @@ struct
     position_at_end (entry_block func) bld ;
     func
 
-  let llvm_binop (id : Id.t)
+  let llvm_binop ?(type_res = i64) (id : Id.t)
       (build_op : llvalue -> llvalue -> string -> llbuilder -> llvalue) :
       BCodegen.builtin =
     let (LId id as lid) = LLId.from_tagged (id, User) in
     fun bld ->
-      let typ = function_type i64 [|i64; i64|] in
+      let typ = function_type type_res [|i64; i64|] in
       let func = define_function id typ bld in
       let ret = build_op (param func 0) (param func 1) "r" bld in
       let _ = build_ret ret bld in
@@ -61,7 +61,8 @@ struct
     ; (let id = Id.I "*" in
        (id, ty_binop, llvm_binop id build_mul) )
     ; (let id = Id.I "=" in
-       (id, ty_cmp_binop, llvm_binop id (build_icmp Eq)) )
+       (id, ty_cmp_binop, llvm_binop ~type_res:(i1_type lctx) id (build_icmp Eq))
+      )
     ; (let id = Id.I "print_int" in
        (id, ty "int -> unit", llvm_print_int id) ) ]
 end
