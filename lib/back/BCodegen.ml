@@ -96,6 +96,7 @@ end = struct
   let ctx = module_context lmod
   let bld = builder ctx
   let i64 = i64_type ctx
+  let i1 = i1_type ctx
 
   open LLMonad
 
@@ -183,6 +184,7 @@ end = struct
           (gen_anf anf)
     | If (icond, athen, aelse) ->
         let* val_cond = gen_imm icond in
+        let val_cond = build_intcast val_cond i1 "cond" bld in
 
         let func = block_parent (insertion_block bld) in
         let bthen = append_block ctx "then" func in
