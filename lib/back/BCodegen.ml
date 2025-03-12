@@ -81,7 +81,7 @@ end = struct
     return x
 end
 
-type builtin = llmodule -> LLId.t * llvalue * lltype
+type builtin = llbuilder -> LLId.t * llvalue * lltype
 
 module LLCodeGen (LLModule : sig
   val lmod : llmodule
@@ -208,7 +208,7 @@ end = struct
   let gen_builtins (builtins : builtin list) =
     List.fold_left builtins ~init:(return ()) ~f:(fun acc bltn ->
         let* () = acc in
-        let id, func, typ = bltn lmod in
+        let id, func, typ = bltn bld in
         add_func id ~func ~typ )
 
   let gen ~(builtins : builtin list) ((defs, anf) : MAnf.t) =

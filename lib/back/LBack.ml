@@ -9,7 +9,7 @@
 open! Base
 
 module LLId = BCommon.LLId
-module LLRuntime = BRuntime.LLRuntime
+module LLRuntime = BRuntime
 
 module BCodegen : sig
   open Llvm
@@ -17,7 +17,7 @@ module BCodegen : sig
   type err = TypeError of string | NotImplemented of string
   val pp_err : Format.formatter -> err -> unit
 
-  type builtin = llmodule -> LLId.t * llvalue * lltype
+  type builtin = llbuilder -> LLId.t * llvalue * lltype
 
   module LLCodeGen : functor
     (_ : sig

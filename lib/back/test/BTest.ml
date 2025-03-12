@@ -17,12 +17,6 @@ module Format = Stdlib.Format
 type err = ParseErr | MiddleErr of MSimpl.err | CodegenErr of BCodegen.err
 
 let run' s =
-  let globals, builtins =
-    List.fold_right LBuiltin.builtins ~init:(IdSet.empty, [])
-      ~f:(fun (id, _, bltn) (globals, builtins) ->
-        (Set.add globals id, bltn :: builtins) )
-  in
-
   let open Result in
   let ( let* ) = ( >>= ) in
 
@@ -34,30 +28,31 @@ let run' s =
     MSimpl.from_structure structure |> map_error ~f:(fun err -> MiddleErr err)
   in
   let opt = MOpt.opt sim in
+
+  let module LLModule = struct
+    open Llvm
+    let lctx = create_context ()
+    let lmod = create_module lctx "neml"
+  end in
+  let module LLRuntime = LLRuntime.Make (LLModule) in
+  let module Builtin = LBuiltin.Make (LLModule) (LLRuntime) in
+  let globals, builtins =
+    List.fold_right Builtin.builtins ~init:(IdSet.empty, [])
+      ~f:(fun (id, _, bltn) (globals, builtins) ->
+        (Set.add globals id, bltn :: builtins) )
+  in
+
   let cls = MCLess.from_simpl ~globals opt in
   let anf = MAnf.from_cless cls in
 
   PPrint.ToChannel.pretty 1. 80 stdout
     (LPrint.pp_structure (MAnf.to_structure anf)) ;
-
-  let open Llvm in
-  let lctx = create_context () in
-  let lmod = create_module lctx "neml" in
-
-  let module Runtime = LLRuntime (struct
-    let lmod = lmod
-  end) in
-  let module CodeGen =
-    BCodegen.LLCodeGen
-      (struct
-        let lmod = lmod
-      end)
-      (Runtime)
-  in
+  let module CodeGen = BCodegen.LLCodeGen (LLModule) (LLRuntime) in
   let* () =
     CodeGen.gen ~builtins anf |> map_error ~f:(fun err -> CodegenErr err)
   in
-  return @@ Format.printf "\n\n%s" (string_of_llmodule lmod)
+
+  return @@ Format.printf "\n\n%s" (Llvm.string_of_llmodule LLModule.lmod)
 
 let run s =
   match run' s with
@@ -71,19 +66,21 @@ let run s =
       ()
 
 let%expect_test _ =
-  run {| let f x y = x - y + 42 in f (10 - 5) 1 |} ;
+  run {| let f x y = x - y + 42 in print_int (10 - 5) 1 |} ;
   [%expect
     {|
     let f0 = fun x y -> let v0 = ( - ) x y in ( + ) v0 42;;
-    let f1 = fun f -> let v0 = ( - ) 10 5 in f v0 1;;
+    let f1 = fun f -> let v0 = ( - ) 10 5 in print_int v0 1;;
     f1 f0
 
     ; ModuleID = 'neml'
     source_filename = "neml"
 
-    declare i64 @neml_create_closure(i64, i64)
+    declare i64 @neml_print_int(i64)
 
     declare i64 @neml_apply_closure(i64, i64, ...)
+
+    declare i64 @neml_create_closure(i64, i64)
 
     ; Function Attrs: alwaysinline
     define i64 @u43(i64 %0, i64 %1) #0 {
@@ -113,6 +110,13 @@ let%expect_test _ =
       ret i1 %r
     }
 
+    ; Function Attrs: alwaysinline
+    define i64 @uprint95int(i64 %0) #0 {
+    entry:
+      %r = call i64 @neml_print_int(i64 %0)
+      ret i64 %r
+    }
+
     define i64 @gf0(i64 %ux, i64 %uy) {
     entry:
       %gv0 = call i64 @u45(i64 %ux, i64 %uy)
@@ -123,8 +127,9 @@ let%expect_test _ =
     define i64 @gf1(i64 %uf) {
     entry:
       %gv0 = call i64 @u45(i64 10, i64 5)
-      %r = call i64 (i64, i64, ...) @neml_apply_closure(i64 %uf, i64 2, i64 %gv0, i64 1)
-      ret i64 %r
+      %r = call i64 @neml_create_closure(ptr @uprint95int, i64 1)
+      %r1 = call i64 (i64, i64, ...) @neml_apply_closure(i64 %r, i64 2, i64 %gv0, i64 1)
+      ret i64 %r1
     }
 
     define i64 @main() {
