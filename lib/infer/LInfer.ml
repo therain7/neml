@@ -79,7 +79,7 @@ let infer (env : Env.t) (item : StrItem.t) : (output, IError.t) Result.t =
      by adding ExplInst constraints *)
   let* cs =
     Map.fold asm ~init:(return cs) ~f:(fun ~key:id ~data:vars acc ->
-        let* acc : ConSet.t = acc in
+        let* (acc : ConSet.t) = acc in
 
         let* sc =
           Map.find env.bounds id
