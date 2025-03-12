@@ -4,8 +4,6 @@
   base
   stdio
   llvm
-  llvm.executionengine
-  llvm.bitreader
   LMisc
   LAst
   LPrint
