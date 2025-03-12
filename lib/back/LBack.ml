@@ -15,6 +15,8 @@ module BCodegen : sig
   open Llvm
 
   type err = TypeError of string | NotImplemented of string
+  val pp_err : Format.formatter -> err -> unit
+
   type builtin = llmodule -> LLId.t * llvalue * lltype
 
   module LLCodeGen : functor

@@ -27,7 +27,7 @@ let llvm_binop (id : Id.t)
     add_function_attr func (create_enum_attr lctx "alwaysinline" 0L) Function ;
     position_at_end (entry_block func) lbld ;
 
-    let ret = build (param func 0) (param func 1) id lbld in
+    let ret = build (param func 0) (param func 1) "r" lbld in
     let _ = build_ret ret lbld in
     (lid, func, typ)
 
@@ -40,4 +40,6 @@ let builtins : (Id.t * Ty.t * BCodegen.builtin) list =
   ; (let id = Id.I "-" in
      (id, ty_binop, llvm_binop id build_sub) )
   ; (let id = Id.I "*" in
-     (id, ty_binop, llvm_binop id build_mul) ) ]
+     (id, ty_binop, llvm_binop id build_mul) )
+  ; (let id = Id.I "=" in
+     (id, ty_binop, llvm_binop id (build_icmp Eq)) ) ]
