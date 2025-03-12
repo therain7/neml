@@ -1,0 +1,8 @@
+(library
+ (name BackTest)
+ (libraries base stdio LAst LParse LPrint LMiddle LBack LBuiltin)
+ (preprocess
+  (pps ppx_expect))
+ (inline_tests)
+ (instrumentation
+  (backend bisect_ppx)))
