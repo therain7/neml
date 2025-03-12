@@ -76,31 +76,27 @@ let run' s out_path =
 
   return (print_module out_path LLModule.lmod)
 
-module Format = Stdlib.Format
-
-let run code out_path =
+let run code ~out_path =
+  let module Format = Stdlib.Format in
   match run' code out_path with
-  | Error ParseErr ->
-      print_endline "syntax error" ;
-      -1
-  | Error (InferErr err) ->
-      LInfer.IError.pp Format.std_formatter err ;
-      -1
-  | Error (SimplErr err) ->
-      MSimpl.pp_err Format.std_formatter err ;
-      -1
-  | Error (CodegenErr err) ->
-      BCodegen.pp_err Format.std_formatter err ;
+  | Error err ->
+      ( match err with
+      | ParseErr ->
+          print_endline "syntax error"
+      | InferErr err ->
+          LInfer.IError.pp Format.std_formatter err
+      | SimplErr err ->
+          MSimpl.pp_err Format.std_formatter err
+      | CodegenErr err ->
+          BCodegen.pp_err Format.std_formatter err ) ;
       -1
   | Ok () ->
       0
 
-let main path out_path =
-  let code = Stdio.In_channel.read_all path in
-  (* XXX: hardcode *)
-  let code = "type unit = ();; type bool = true | false;;" ^ code in
-  run code out_path
+let main ~in_path ~out_path =
+  let code = Stdio.In_channel.read_all in_path in
+  run code ~out_path
 
 let () =
   let argv = Sys.get_argv () in
-  exit @@ main argv.(1) argv.(2)
+  Stdlib.exit @@ main ~in_path:argv.(1) ~out_path:argv.(2)

@@ -6,6 +6,8 @@
 
 #include <ffi/ffi.h>
 
+#define err(fmt, ...) fprintf(stderr, "err: " fmt "\n", ##__VA_ARGS__)
+
 typedef int64_t i64;
 typedef uint64_t u64;
 
@@ -17,9 +19,6 @@ typedef struct {
 
     void *argv[];
 } neml_closure;
-
-#define max(x, y) x ? x > y : y
-#define err(fmt, ...) fprintf(stderr, "err: " fmt "\n", ##__VA_ARGS__)
 
 void *neml_create_closure(void *func, u64 argc)
 {
@@ -82,6 +81,7 @@ static void *apply_closure(neml_closure *closure, const u64 argc, va_list vargs)
         if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, copy->argc,
                  &ffi_type_sint64, atypes)) {
             err("ffi_pre_cif failed");
+            destroy_closure(copy);
             return NULL;
         };
 

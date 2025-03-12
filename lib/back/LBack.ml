@@ -15,7 +15,7 @@ module BCodegen : sig
   open Llvm
 
   type err = TypeError of string | NotImplemented of string
-  val pp_err : Format.formatter -> err -> unit
+  val pp_err : Stdlib.Format.formatter -> err -> unit
 
   type builtin = llbuilder -> LLId.t * llvalue * lltype
 

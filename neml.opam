@@ -42,6 +42,3 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/therain7/neml.git"
-depexts: [
-  [ "llvm-16-dev" "clang-16" "libffi-dev" ] {os-distribution = "ubuntu"}
-]
