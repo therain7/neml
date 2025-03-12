@@ -63,6 +63,9 @@ struct
     ; (let id = Id.I "=" in
        (id, ty_cmp_binop, llvm_binop ~type_res:(i1_type lctx) id (build_icmp Eq))
       )
+    ; (let id = Id.I "<" in
+       (id, ty_cmp_binop, llvm_binop ~type_res:(i1_type lctx) id (build_icmp Slt))
+      )
     ; (let id = Id.I "print_int" in
        (id, ty "int -> unit", llvm_print_int id) ) ]
 end

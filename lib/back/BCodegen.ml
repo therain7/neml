@@ -133,7 +133,9 @@ end = struct
         return (const_int i64 i)
     | Const Unit ->
         return (const_null i64)
-    | Const (String _ | Char _ | Bool _) ->
+    | Const (Bool b) ->
+        return (const_int (i1_type ctx) (Bool.to_int b))
+    | Const (String _ | Char _) ->
         fail (NotImplemented "weird constants")
 
   let gen_cmplx : MAnf.cmplx -> llvalue t = function
@@ -179,8 +181,25 @@ end = struct
         extend_locals
           (Map.of_alist_exn (module LLId) [(lid, val_cmplx)])
           (gen_anf anf)
-    | If (_, _, _) ->
-        fail (NotImplemented "IFs")
+    | If (icond, athen, aelse) ->
+        let* val_cond = gen_imm icond in
+
+        let func = block_parent (insertion_block bld) in
+        let bthen = append_block ctx "then" func in
+        let belse = append_block ctx "else" func in
+        let bcont = append_block ctx "cont" func in
+
+        let _ = build_cond_br val_cond bthen belse bld in
+        position_at_end bthen bld ;
+        let* val_then = gen_anf athen in
+        let _ = build_br bcont bld in
+
+        position_at_end belse bld ;
+        let* val_else = gen_anf aelse in
+        let _ = build_br bcont bld in
+
+        position_at_end bcont bld ;
+        return @@ build_phi [(val_then, bthen); (val_else, belse)] "r" bld
 
   let gen_func (FuncDef.Func {recf= _; id= tagged; args; body}) =
     let (LId id as lid) = LLId.from_tagged tagged in
